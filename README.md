@@ -17,7 +17,7 @@ See examples/spiral/ for the complete code of this demo.
 
 ## How does it work?
 
-The first time you run the code, it starts the renderer process. It also starts listening for code changes. When a code change is detected, the app is recompiled by the renderer (taking advantage of go's fast compilation times) and quickly renders the new surface to the same window (with the same camera position and other settings).
+The first time you run the code, it starts the renderer process. It also starts listening for code changes. When a code change is detected, the app is recompiled by the renderer (taking advantage of Go's fast compilation times) and quickly renders the new surface to the same window (with the same camera position and other settings).
 
 The SDF2 renderer shows the value of the SDF on each pixel using a grayscale: where bright pixels indicate outside the object and darker pixels are inside. The camera can be moved and scaled (using the mouse), rendering only the interesting part of the SDF.
 
