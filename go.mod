@@ -24,5 +24,6 @@ require (
 	github.com/yofu/dxf v0.0.0-20190710012328-5a6d1e83f16c // indirect
 	golang.org/x/exp v0.0.0-20191002040644-a1355ae1e2c3 // indirect
 	golang.org/x/mobile v0.0.0-20210208171126-f462b3930c8f // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
+	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
+	golang.org/x/text v0.3.7 // indirect
 )

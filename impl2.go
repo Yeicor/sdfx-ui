@@ -1,4 +1,4 @@
-package dev
+package ui
 
 import (
 	"github.com/deadsy/sdfx/sdf"

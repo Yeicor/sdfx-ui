@@ -1,7 +1,7 @@
 package main
 
 import (
-	ui "github.com/Yeicor/sdfx-ui"
+	"github.com/Yeicor/sdfx-ui"
 	"github.com/deadsy/sdfx/sdf"
 	"github.com/hajimehoshi/ebiten"
 	"log"

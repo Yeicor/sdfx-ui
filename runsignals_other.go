@@ -1,7 +1,7 @@
 //go:build !linux
 // +build !linux
 
-package dev
+package ui
 
 import (
 	"os"

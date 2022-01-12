@@ -1,4 +1,4 @@
-package dev
+package ui
 
 import (
 	"github.com/deadsy/sdfx/render"
@@ -72,7 +72,7 @@ func (rm *renderer3mesh) Render(r *renderer3, args *renderArgs) error {
 	//args.state.CamCenter.X = -args.state.CamCenter.X
 	//args.state.CamCenter.Y = -args.state.CamCenter.Y
 	aspectRatio := float64(boundsSize[0]) / float64(boundsSize[1])
-	camViewMatrix := args.state.Cam3MatrixNoTranslation()
+	camViewMatrix := args.state.cam3MatrixNoTranslation()
 	camPos := args.state.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.state.CamDist / 1.12 /* Adjust to other implementation*/}))
 	camDir := args.state.CamCenter.Sub(camPos).Normalize()
 	camFovX := r.camFOV

@@ -1,13 +1,16 @@
-package dev
+package ui
 
 import (
 	"github.com/deadsy/sdfx/sdf"
 	"github.com/hajimehoshi/ebiten"
 )
 
-var _ ebiten.Game = &Renderer{}
+// rendererEbitenGame hides the private ebiten implementation while behaving like a *Renderer internally
+type rendererEbitenGame struct {
+	*Renderer
+}
 
-func (r *Renderer) Update(_ *ebiten.Image) error {
+func (r rendererEbitenGame) Update(_ *ebiten.Image) error {
 	var err error
 	r.cachedRenderLock.RLock()
 	firstFrame := r.cachedRender == nil
@@ -23,12 +26,12 @@ func (r *Renderer) Update(_ *ebiten.Image) error {
 	return nil
 }
 
-func (r *Renderer) Draw(screen *ebiten.Image) {
+func (r rendererEbitenGame) Draw(screen *ebiten.Image) {
 	r.drawSDF(screen)
 	r.drawUI(screen)
 }
 
-func (r *Renderer) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+func (r rendererEbitenGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	r.cachedRenderLock.RLock()
 	firstFrame := r.cachedRender == nil
 	r.cachedRenderLock.RUnlock()

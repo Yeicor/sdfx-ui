@@ -1,4 +1,4 @@
-package dev
+package ui
 
 import (
 	"github.com/deadsy/sdfx/sdf"
@@ -147,7 +147,7 @@ func (r *renderer3) Render(args *renderArgs) error {
 	bounds := args.fullRender.Bounds()
 	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
 	//aspectRatio := float64(boundsSize[0]) / float64(boundsSize[1])
-	camViewMatrix := args.state.Cam3MatrixNoTranslation()
+	camViewMatrix := args.state.cam3MatrixNoTranslation()
 	camPos := args.state.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.state.CamDist}))
 	camDir := args.state.CamCenter.Sub(camPos).Normalize()
 	camFovX := r.camFOV
@@ -227,22 +227,20 @@ func (r *renderer3) samplePixel(pixel01 sdf.V2, job *pixelRender) color.RGBA {
 				B: uint8(float64(r.surfaceColor.B) * lightIntensity),
 				A: r.surfaceColor.A,
 			}
-		} else { // Color == abs(normal)
-			return color.RGBA{
-				R: uint8(math.Abs(normal.X) * 255),
-				G: uint8(math.Abs(normal.Y) * 255),
-				B: uint8(math.Abs(normal.Z) * 255),
-				A: 255,
-			}
+		} // Otherwise, Color == abs(normal)
+		return color.RGBA{
+			R: uint8(math.Abs(normal.X) * 255),
+			G: uint8(math.Abs(normal.Y) * 255),
+			B: uint8(math.Abs(normal.Z) * 255),
+			A: 255,
 		}
-	} else {
-		if steps == r.rayMaxSteps {
-			// Reached the maximum amount of steps (should change parameters)
-			return r.errorColor
-		}
-		// The void
-		return r.backgroundColor
+	} // Otherwise, missed the surface (or run out of steps)
+	if steps == r.rayMaxSteps {
+		// Reached the maximum amount of steps (should change parameters)
+		return r.errorColor
 	}
+	// The void
+	return r.backgroundColor
 }
 
 type invertZ struct {

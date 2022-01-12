@@ -1,4 +1,4 @@
-package dev
+package ui
 
 import (
 	"fmt"
@@ -66,7 +66,7 @@ func (r *Renderer) runRenderer(runCmdF func() *exec.Cmd, watchFiles []string) er
 		}
 	}
 
-	return ebiten.RunGame(r) // blocks until the window is closed
+	return ebiten.RunGame(rendererEbitenGame{r}) // blocks until the window is closed
 }
 
 func (r *Renderer) runChild(requestedAddress string) error {
@@ -130,7 +130,7 @@ func (r *Renderer) rendererSwapChild(runCmd *exec.Cmd, runCmdF func() *exec.Cmd)
 	}
 	// 3. Configure the process and start it in the background
 	runCmd = runCmdF()
-	runCmd.Env = append(os.Environ(), RequestedAddressEnvKey+"="+requestedFreeAddr)
+	runCmd.Env = append(os.Environ(), requestedAddressEnvKey+"="+requestedFreeAddr)
 	runCmd.Stdout = os.Stdout // Merge stdout
 	runCmd.Stderr = os.Stderr // Merge stderr
 	err = runCmd.Start()

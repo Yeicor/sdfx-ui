@@ -1,4 +1,4 @@
-package dev
+package ui
 
 import (
 	"context"
@@ -63,6 +63,7 @@ func (r *Renderer) rerender(callbacks ...func(err error)) {
 				callback(err)
 			}
 		}()
+		//lint:ignore SA1012 package API allows this
 		if !r.renderingLock.TryLock(nil) {
 			r.implStateLock.RLock() // Avoid race condition with creating a new context
 			r.renderingCtxCancel()
@@ -106,9 +107,9 @@ func (r *Renderer) rerender(callbacks ...func(err error)) {
 		}(renderSize)
 		renderStartTime := time.Now()
 		r.implStateLock.RLock()
-		sameSize := r.cachedRenderCpu != nil && (sdf.V2i{r.cachedRenderCpu.Rect.Max.X, r.cachedRenderCpu.Rect.Max.Y} == renderSize)
+		sameSize := r.cachedRenderCPU != nil && (sdf.V2i{r.cachedRenderCPU.Rect.Max.X, r.cachedRenderCPU.Rect.Max.Y} == renderSize)
 		if !sameSize {
-			r.cachedRenderCpu = image.NewRGBA(image.Rect(0, 0, renderSize[0], renderSize[1]))
+			r.cachedRenderCPU = image.NewRGBA(image.Rect(0, 0, renderSize[0], renderSize[1]))
 		}
 		r.implStateLock.RUnlock()
 		r.implLock.RLock()
@@ -118,7 +119,7 @@ func (r *Renderer) rerender(callbacks ...func(err error)) {
 			stateLock:        r.implStateLock,
 			cachedRenderLock: r.cachedRenderLock,
 			partialRenders:   partialRenders,
-			fullRender:       r.cachedRenderCpu,
+			fullRender:       r.cachedRenderCPU,
 		})
 		r.implLock.RUnlock()
 		if err != nil {
@@ -128,7 +129,7 @@ func (r *Renderer) rerender(callbacks ...func(err error)) {
 			return
 		}
 		renderGPUStartTime := time.Now()
-		renderGpuImg, err := ebiten.NewImageFromImage(r.cachedRenderCpu, ebiten.FilterDefault)
+		renderGpuImg, err := ebiten.NewImageFromImage(r.cachedRenderCPU, ebiten.FilterDefault)
 		if err != nil {
 			log.Println("Error sending image to GPU:", err)
 			return

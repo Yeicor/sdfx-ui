@@ -1,4 +1,4 @@
-package dev
+package ui
 
 import (
 	"github.com/cenkalti/backoff/v4"
@@ -42,7 +42,7 @@ type Renderer struct {
 	implState           *RendererState    // the renderer's state, so impl can be swapped while keeping the state.
 	implStateLock       *sync.RWMutex     // the renderer's state lock
 	cachedRender        *ebiten.Image     // the latest cached render (to avoid rendering every frame, or frame parts even if nothing changed)
-	cachedRenderCpu     *image.RGBA       // the latest cached render (to avoid rendering every frame, or frame parts even if nothing changed)
+	cachedRenderCPU     *image.RGBA       // the latest cached render (to avoid rendering every frame, or frame parts even if nothing changed)
 	cachedRenderBb2     sdf.Box2          // what part of the SDF2 the latest cached render represents (not implemented, and no equivalent optimization available for SDF3s)
 	cachedPartialRender *ebiten.Image     // the latest partial render (to display render progress visually)
 	cachedRenderLock    *sync.RWMutex     // the lock over tha partial render
@@ -96,13 +96,13 @@ func NewRenderer(anySDF interface{}, opts ...Option) *Renderer {
 	return r
 }
 
-const RequestedAddressEnvKey = "SDFX_DEV_RENDERER_CHILD"
+const requestedAddressEnvKey = "SDFX_DEV_RENDERER_CHILD"
 
+// Run starts the UI or connects to a previous UI renderer and provides the new surface automatically
 func (r *Renderer) Run() error {
-	requestedAddress := os.Getenv(RequestedAddressEnvKey)
+	requestedAddress := os.Getenv(requestedAddressEnvKey)
 	if requestedAddress != "" { // Found a parent renderer (environment variable)
 		return r.runChild(requestedAddress)
-	} else { // Otherwise, listen for code changes to spawn a child renderer and create the local renderer
-		return r.runRenderer(r.runCmd, r.watchFiles)
-	}
+	} // Otherwise, listen for code changes to spawn a child renderer and create the local renderer
+	return r.runRenderer(r.runCmd, r.watchFiles)
 }

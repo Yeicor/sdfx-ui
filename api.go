@@ -1,4 +1,4 @@
-package dev
+package ui
 
 import (
 	"context"
@@ -31,7 +31,8 @@ type renderArgs struct {
 	fullRender                  *image.RGBA
 }
 
-// RendererState is an internal structure, exported for (de)serialization reasons
+// Deprecated: RendererState is an internal struct that has to be exported for RPC.
+//goland:noinspection GoDeprecation
 type RendererState struct {
 	// SHARED
 	ResInv    int  // How detailed is the image: number screen pixels for each pixel rendered (SDF2: use a power of two)
@@ -51,15 +52,15 @@ func (r *Renderer) newRendererState() *RendererState {
 		ResInv: 4,
 		Bb:     toBox2(r.impl.BoundingBox()), // 100% zoom (will fix aspect ratio later)
 	}
-	s.ResetCam3(r)
+	s.resetCam3(r)
 	return s
 }
 
-func (s *RendererState) Cam3MatrixNoTranslation() sdf.M44 {
+func (s *RendererState) cam3MatrixNoTranslation() sdf.M44 {
 	return sdf.RotateZ(s.CamYaw).Mul(sdf.RotateX(s.CamPitch))
 }
 
-func (s *RendererState) ResetCam3(r *Renderer) {
+func (s *RendererState) resetCam3(r *Renderer) {
 	s.CamCenter = r.impl.BoundingBox().Center()
 	s.CamDist = r.impl.BoundingBox().Size().Length() / 2
 	s.CamPitch = -math.Pi / 4 // Look from 45º up

@@ -1,4 +1,4 @@
-package dev
+package ui
 
 import (
 	"context"
@@ -85,7 +85,7 @@ func (d *rendererClient) Render(args *renderArgs) error {
 		}
 		if res.IsPartial {
 			if args.partialRenders != nil {
-				args.partialRenders <- &*res.RenderedImg // Read-only shallow-copy is enough
+				args.partialRenders <- res.RenderedImg
 			}
 		} else { // Final render
 			if args.partialRenders != nil {
@@ -105,8 +105,10 @@ func (d *rendererClient) Shutdown(timeout time.Duration) error {
 	return d.cl.Call("RendererService.Shutdown", &timeout, &out)
 }
 
-// RendererService is the server counter-part to rendererClient.
+// Deprecated: RendererService is an internal struct that has to be exported for RPC.
+// is the server counterpart to rendererClient.
 // It provides remote access to a devRendererImpl.
+//goland:noinspection GoDeprecation
 type RendererService struct {
 	impl                        devRendererImpl
 	prevRenderCancel            func()
@@ -134,34 +136,40 @@ func newDevRendererService(impl devRendererImpl, done chan os.Signal) *rpc.Serve
 	return server
 }
 
+// Deprecated: Dimensions is an internal method that has to be exported for RPC.
 func (d *RendererService) Dimensions(_ int, out *int) error {
 	*out = d.impl.Dimensions()
 	return nil
 }
 
+// Deprecated: BoundingBox is an internal method that has to be exported for RPC.
 func (d *RendererService) BoundingBox(_ sdf.Box3, out *sdf.Box3) error {
 	*out = d.impl.BoundingBox()
 	return nil
 }
 
+// Deprecated: ColorModes is an internal method that has to be exported for RPC.
 func (d *RendererService) ColorModes(_ int, out *int) error {
 	*out = d.impl.ColorModes()
 	return nil
 }
 
-// RemoteRenderArgs is an internal structure, exported for (de)serialization reasons
+// Deprecated: RemoteRenderArgs is an internal struct that has to be exported for RPC.
+//goland:noinspection GoDeprecation
 type RemoteRenderArgs struct {
 	RenderSize sdf.V2i
 	State      *RendererState
 }
 
-// RemoteRenderResults is an internal structure, exported for (de)serialization reasons
+// Deprecated: RemoteRenderResults is an internal struct that has to be exported for RPC.
+//goland:noinspection GoDeprecation
 type RemoteRenderResults struct {
 	IsPartial   bool
 	RenderedImg *image.RGBA
 	NewState    *RendererState
 }
 
+// Deprecated: RenderStart is an internal method that has to be exported for RPC.
 // RenderStart starts a new render (cancelling the previous one)
 func (d *RendererService) RenderStart(args RemoteRenderArgs, _ *int) error {
 	d.prevRenderCancel() // Cancel previous render always (no concurrent renderings, although each rendering is parallel by itself)
@@ -234,6 +242,7 @@ loop: // Wait for previous renders to be properly completed/cancelled before con
 
 var errNoRenderRunning = errors.New("no render currently running")
 
+// Deprecated: RenderGet is an internal struct that has to be exported for RPC.
 // RenderGet gets the next partial or full render available (partial renders might be lost if not called, but not the full render).
 // It will return an error if no render is running (or it was cancelled before returning the next result)
 func (d *RendererService) RenderGet(_ int, out *RemoteRenderResults) error {
@@ -258,6 +267,7 @@ func (d *RendererService) RenderGet(_ int, out *RemoteRenderResults) error {
 	}
 }
 
+// Deprecated: RenderCancel is an internal struct that has to be exported for RPC.
 // RenderCancel cancels the current rendering. It will always succeed with no error.
 func (d *RendererService) RenderCancel(_ int, _ *int) error {
 	//d.renderMu.Lock()
@@ -266,6 +276,7 @@ func (d *RendererService) RenderCancel(_ int, _ *int) error {
 	return nil
 }
 
+// Deprecated: Shutdown is an internal struct that has to be exported for RPC.
 // Shutdown sends a signal on the configured channel (with a timeout)
 func (d *RendererService) Shutdown(t time.Duration, _ *int) error {
 	select {

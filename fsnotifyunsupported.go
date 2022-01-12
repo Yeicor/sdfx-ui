@@ -1,7 +1,7 @@
 //go:build plan9 || solaris || js
 // +build plan9 solaris js
 
-package dev
+package ui
 
 import (
 	"errors"
