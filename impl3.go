@@ -146,12 +146,12 @@ func (r *renderer3) Render(args *renderArgs) error {
 	colorModeCopy := args.state.ColorMode
 	bounds := args.fullRender.Bounds()
 	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
-	aspectRatio := float64(boundsSize[0]) / float64(boundsSize[1])
+	//aspectRatio := float64(boundsSize[0]) / float64(boundsSize[1])
 	camViewMatrix := args.state.Cam3MatrixNoTranslation()
 	camPos := args.state.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.state.CamDist}))
 	camDir := args.state.CamCenter.Sub(camPos).Normalize()
 	camFovX := r.camFOV
-	camFovY := 2 * math.Atan(math.Tan(camFovX/2)*aspectRatio)
+	camFovY := 2 * math.Atan(math.Tan(camFovX/2) /**aspectRatio*/)
 	// Approximate max ray length for the whole camera (it could be improved... or maybe a fixed value is better)
 	sBb := r.BoundingBox()
 	maxRay := math.Abs(collideRayBb(camPos, camDir, sBb))

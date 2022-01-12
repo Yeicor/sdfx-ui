@@ -16,7 +16,7 @@ import (
 
 // Opt3Mesh enables and configures the 3D mesh renderer instead of the default raycast based renderer
 // WARNING: Should be the last option applied (as some other options might modify the SDF3).
-func Opt3Mesh(meshGenerator render.Render3, meshCells int) Option {
+func Opt3Mesh(meshGenerator render.Render3, meshCells int, smoothNormalsRadians float64) Option {
 	return func(r *Renderer) {
 		if r3, ok := r.impl.(*renderer3); ok {
 			log.Println("[DevRenderer] Rendering 3D mesh...") // only performed once per compilation
@@ -31,7 +31,7 @@ func Opt3Mesh(meshGenerator render.Render3, meshCells int) Option {
 			}
 			mesh := fauxgl.NewTriangleMesh(triangles)
 			// smooth the normals
-			mesh.SmoothNormalsThreshold(fauxgl.Radians(30))
+			mesh.SmoothNormalsThreshold(smoothNormalsRadians)
 			r3.meshRenderer = &renderer3mesh{mesh: mesh, lastContext: nil}
 			log.Println("[DevRenderer] Mesh is ready")
 		}
@@ -73,7 +73,7 @@ func (rm *renderer3mesh) Render(r *renderer3, args *renderArgs) error {
 	//args.state.CamCenter.Y = -args.state.CamCenter.Y
 	aspectRatio := float64(boundsSize[0]) / float64(boundsSize[1])
 	camViewMatrix := args.state.Cam3MatrixNoTranslation()
-	camPos := args.state.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.state.CamDist}))
+	camPos := args.state.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.state.CamDist / 1.12 /* Adjust to other implementation*/}))
 	camDir := args.state.CamCenter.Sub(camPos).Normalize()
 	camFovX := r.camFOV
 	camFovY := 2 * math.Atan(math.Tan(camFovX/2)*aspectRatio)
@@ -85,7 +85,6 @@ func (rm *renderer3mesh) Render(r *renderer3, args *renderArgs) error {
 		maxRay += sBb.Size().Length()
 	}
 	maxRay *= 4 // Rays thrown from the camera at different angles may need a little more maxRay
-	log.Println("camPos", camPos, "camCenter", args.state.CamCenter)
 	camFauxglMatrix := fauxgl.LookAt(r3mToFauxglVector(camPos), r3mToFauxglVector(args.state.CamCenter), fauxgl.Vector{Z: 1}).
 		Perspective(camFovY*180/math.Pi, aspectRatio, 1e-6, maxRay)
 	//args.state.CamYaw -= math.Pi // HACK (restore)

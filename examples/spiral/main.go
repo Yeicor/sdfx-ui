@@ -83,7 +83,7 @@ func main() {
 	// Actual rendering loop
 	err = ui.NewRenderer(s,
 		ui.OptMWatchFiles([]string{"main.go"}), // Default of "." also works, but it triggers too often if generating a profile
-		//ui.Opt3Mesh(&render.MarchingCubesUniform{}, 200),
+		//ui.Opt3Mesh(&render.MarchingCubesUniform{}, 200, math.Pi/3),
 	).Run()
 	if err != nil {
 		panic(err)
