@@ -33,7 +33,7 @@ func main() {
 
 This is a demo of the workflow for designing your own SDF using this UI (code at examples/spiral/main.go):
 
-![Demo video](docs/demo.mp4)
+![Demo video](docs/demo.gif)
 
 ## How does it work?
 
