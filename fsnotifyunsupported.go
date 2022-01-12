@@ -25,7 +25,7 @@ type Watcher struct {
 }
 
 // NewWatcher establishes a new watcher with the underlying OS and begins waiting for events.
-func NewFsWatcher() (*Watcher, error) {
+func newFsWatcher() (*Watcher, error) {
 	return nil, errFsNotifyNotSupported
 }
 

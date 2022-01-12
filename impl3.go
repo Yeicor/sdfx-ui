@@ -10,11 +10,11 @@ import (
 // CONFIGURATION
 //-----------------------------------------------------------------------------
 
-// Opt3YUp sets the UP direction to Y+ instead of Z+.
-func Opt3YUp(yUp bool) Option {
+// Opt3SwapYAndZ sets the UP direction to Y+ instead of Z+ (or swaps it back).
+func Opt3SwapYAndZ() Option {
 	return func(r *Renderer) {
 		if r3, ok := r.impl.(*renderer3); ok {
-			r3.s = &invertZ{&swapYZ{r3.s}}
+			r3.s = &swapYZ{r3.s}
 		}
 	}
 }
@@ -97,6 +97,7 @@ type renderer3 struct {
 	// Raycast configuration
 	rayScaleAndSigmoid, rayStepScale, rayEpsilon float64
 	rayMaxSteps                                  int
+	meshRenderer                                 *renderer3mesh // Alternative renderer
 }
 
 func newDevRenderer3(s sdf.SDF3) devRendererImpl {
@@ -106,11 +107,11 @@ func newDevRenderer3(s sdf.SDF3) devRendererImpl {
 		surfaceColor:       color.RGBA{R: 255 - 20, G: 255 - 40, B: 255 - 80, A: 255},
 		backgroundColor:    color.RGBA{B: 50, A: 255},
 		errorColor:         color.RGBA{R: 255, B: 255, A: 255},
-		normalEps:          1e-4,
-		lightDir:           sdf.V3{X: -1, Y: 1, Z: -1}.Normalize(), // Same as default camera TODO: Follow camera mode?
+		normalEps:          1e-6,
+		lightDir:           sdf.V3{X: -1, Y: 1, Z: 1}.Normalize(), // Same as default camera TODO: Follow camera mode?
 		rayScaleAndSigmoid: 0,
 		rayStepScale:       1,
-		rayEpsilon:         0.1,
+		rayEpsilon:         1e-2,
 		rayMaxSteps:        100,
 	}
 	return r
@@ -125,12 +126,21 @@ func (r *renderer3) BoundingBox() sdf.Box3 {
 }
 
 func (r *renderer3) ColorModes() int {
+	// Use alternative renderer instead if configured to do so
+	if r.meshRenderer != nil {
+		return r.meshRenderer.ColorModes()
+	}
 	// 0: Constant color with basic shading (2 lights and no projected shadows)
 	// 1: Normal XYZ as RGB
 	return 2
 }
 
 func (r *renderer3) Render(args *renderArgs) error {
+	// Use alternative renderer instead if configured to do so
+	if r.meshRenderer != nil {
+		return r.meshRenderer.Render(r, args)
+	}
+
 	// Compute camera matrix and more (once per render)
 	args.stateLock.RLock()
 	colorModeCopy := args.state.ColorMode
@@ -153,6 +163,7 @@ func (r *renderer3) Render(args *renderArgs) error {
 	args.stateLock.RUnlock()
 
 	// Perform the actual render
+	camHalfFov := sdf.V2{X: camFovX, Y: camFovY}.DivScalar(2)
 	return implCommonRender(func(pixel sdf.V2i, pixel01 sdf.V2) interface{} {
 		return &pixelRender{
 			pixel:         pixel,
@@ -160,7 +171,7 @@ func (r *renderer3) Render(args *renderArgs) error {
 			camPos:        camPos,
 			camDir:        camDir,
 			camViewMatrix: camViewMatrix,
-			camFov:        sdf.V2{X: camFovX, Y: camFovY},
+			camHalfFov:    camHalfFov,
 			maxRay:        maxRay,
 			color:         colorModeCopy,
 			rendered:      color.RGBA{},
@@ -180,7 +191,7 @@ type pixelRender struct {
 	pixel, bounds  sdf.V2i // Pixel and bounds for pixel
 	camPos, camDir sdf.V3  // Camera parameters
 	camViewMatrix  sdf.M44 // The world to camera matrix
-	camFov         sdf.V2  // Camera's field of view
+	camHalfFov     sdf.V2  // Camera's field of view
 	maxRay         float64 // The maximum distance of a ray (camPos, camDir) before getting out of bounds
 	// MISC
 	color int
@@ -193,10 +204,10 @@ func (r *renderer3) samplePixel(pixel01 sdf.V2, job *pixelRender) color.RGBA {
 	rayFrom := job.camPos
 	// Get pixel inside of ([-1, 1], [-1, 1])
 	rayDirXZBase := pixel01.MulScalar(2).SubScalar(1)
+	rayDirXZBase.Y = -rayDirXZBase.Y
 	rayDirXZBase.X *= float64(job.bounds[0]) / float64(job.bounds[1]) // Apply aspect ratio (again)
-	//rayDirXZBase.Y = -rayDirXZBase.Y
 	// Convert to the projection over a displacement of 1
-	rayDirXZBase = rayDirXZBase.Mul(sdf.V2{X: math.Tan(job.camFov.DivScalar(2).X), Y: math.Tan(job.camFov.DivScalar(2).Y)})
+	rayDirXZBase = rayDirXZBase.Mul(sdf.V2{X: math.Tan(job.camHalfFov.X), Y: math.Tan(job.camHalfFov.Y)})
 	rayDir := sdf.V3{X: rayDirXZBase.X, Y: 1, Z: rayDirXZBase.Y} // Z is UP (and this default camera is X-right Y-up)
 	// Apply the camera matrix to the default ray
 	rayDir = job.camViewMatrix.MulPosition(rayDir) // .Normalize() (done in Raycast already)

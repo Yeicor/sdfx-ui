@@ -48,7 +48,7 @@ func (r *Renderer) drawSDF(screen *ebiten.Image) {
 }
 
 // rerender will discard any current rendering and start a new render (use it when something changes).
-// It does not lock execution (renders in background).
+// It does not lock execution (queues a new render in background).
 func (r *Renderer) rerender(callbacks ...func(err error)) {
 	r.cachedRenderLock.RLock()
 	if r.cachedRender == nil {

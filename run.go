@@ -21,7 +21,7 @@ const changeEventThrottle = 100 * time.Millisecond
 
 func (r *Renderer) runRenderer(runCmdF func() *exec.Cmd, watchFiles []string) error {
 	if len(watchFiles) > 0 {
-		watcher, err := NewFsWatcher()
+		watcher, err := newFsWatcher()
 		if err != nil {
 			log.Println("Error watching files (won't update on changes):", err)
 		} else {
@@ -104,7 +104,7 @@ func (r *Renderer) runChild(requestedAddress string) error {
 func (r *Renderer) rendererSwapChild(runCmd *exec.Cmd, runCmdF func() *exec.Cmd) *exec.Cmd {
 	r.implLock.Lock() // No more renders until we swapped the implementation
 	defer r.implLock.Unlock()
-	log.Println("[DevRenderer] r.implLock acquired!")
+	//log.Println("[DevRenderer] r.implLock acquired!")
 	// 1. Gracefully close the previous command
 	if runCmd != nil {
 		log.Println("[DevRenderer] Closing previous child process")
@@ -171,7 +171,8 @@ func (r *Renderer) rendererSwapChild(runCmd *exec.Cmd, runCmdF func() *exec.Cmd)
 		remoteRenderer := newDevRendererClient(dialHTTP)
 		// 4.1. Swap the renderer on success
 		r.impl = remoteRenderer
-		r.rerender() // Render the new SDF!!!
+		r.implState.ColorMode = r.implState.ColorMode % r.impl.ColorModes() // Use a valid color mode always
+		r.rerender()                                                        // Render the new SDF!!!
 		return nil
 	}, r.backOff, func(err error, duration time.Duration) {
 		log.Println("[DevRenderer] connection error:", err, "- retrying in:", duration)

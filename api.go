@@ -56,7 +56,7 @@ func (r *Renderer) newRendererState() *RendererState {
 }
 
 func (s *RendererState) Cam3MatrixNoTranslation() sdf.M44 {
-	return sdf.RotateZ(-s.CamYaw).Mul(sdf.RotateX(-s.CamPitch))
+	return sdf.RotateZ(s.CamYaw).Mul(sdf.RotateX(s.CamPitch))
 }
 
 func (s *RendererState) ResetCam3(r *Renderer) {

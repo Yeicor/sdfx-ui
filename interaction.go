@@ -17,6 +17,22 @@ import (
 func (r *Renderer) onUpdateInputs() {
 	r.implLock.RLock()
 	defer r.implLock.RUnlock()
+	r.onUpdateInputsCommon()
+	// SDF2/SDF3-SPECIFIC CONTROLS
+	r.implStateLock.RLock()
+	implDimCache := r.implDimCache
+	r.implStateLock.RUnlock()
+	switch implDimCache {
+	case 2:
+		r.onUpdateInputsSDF2()
+	case 3:
+		r.onUpdateInputsSDF3()
+	default:
+		panic("RendererState.onUpdateInputs not implemented for " + strconv.Itoa(r.implDimCache) + " dimensions")
+	}
+}
+
+func (r *Renderer) onUpdateInputsCommon() {
 	// SHARED CONTROLS
 	if inpututil.IsKeyJustPressed(ebiten.KeyKPAdd) {
 		r.implStateLock.Lock()
@@ -49,151 +65,146 @@ func (r *Renderer) onUpdateInputs() {
 		r.implStateLock.Unlock()
 		r.rerender()
 	}
-	// SDF2/SDF3-SPECIFIC CONTROLS
-	r.implStateLock.RLock()
-	implDimCache := r.implDimCache
-	r.implStateLock.RUnlock()
-	switch implDimCache {
-	case 2:
-		// Zooming
-		_, wheelUpDown := ebiten.Wheel()
-		if wheelUpDown != 0 {
-			r.implStateLock.Lock()
-			scale := 1 - wheelUpDown*r.implState.Bb.Size().Length2()*0.02   // Scale depending on current scale
-			scale = math.Max(1/r.zoomFactor, math.Min(r.zoomFactor, scale)) // Apply zoom limits
-			r.implState.Bb = r.implState.Bb.ScaleAboutCenter(scale)
-			r.implStateLock.Unlock()
-			r.rerender()
+}
+
+func (r *Renderer) onUpdateInputsSDF2() {
+	// Zooming
+	_, wheelUpDown := ebiten.Wheel()
+	if wheelUpDown != 0 {
+		r.implStateLock.Lock()
+		scale := 1 - wheelUpDown*r.implState.Bb.Size().Length2()*0.02   // Scale depending on current scale
+		scale = math.Max(1/r.zoomFactor, math.Min(r.zoomFactor, scale)) // Apply zoom limits
+		r.implState.Bb = r.implState.Bb.ScaleAboutCenter(scale)
+		r.implStateLock.Unlock()
+		r.rerender()
+	}
+	// Translation
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonMiddle) || len(inpututil.JustPressedTouchIDs()) > 0 {
+		// Save the cursor's position for previsualization and applying the final translation
+		cx, cy := ebiten.CursorPosition()
+		if tX, tY := ebiten.TouchPosition(0); tX != 0 && tY != 0 { // Override cursor with touch if available
+			cx, cy = tX, tY
 		}
-		// Translation
-		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonMiddle) || len(inpututil.JustPressedTouchIDs()) > 0 {
-			// Save the cursor's position for previsualization and applying the final translation
-			cx, cy := ebiten.CursorPosition()
-			if tX, tY := ebiten.TouchPosition(0); tX != 0 && tY != 0 { // Override cursor with touch if available
-				cx, cy = tX, tY
-			}
-			r.implStateLock.Lock()
-			if r.translateFrom[0] == math.MaxInt { // Only if not already moving...
-				r.translateFrom = sdf.V2i{cx, cy}
-			}
-			r.implStateLock.Unlock()
+		r.implStateLock.Lock()
+		if r.translateFrom[0] == math.MaxInt { // Only if not already moving...
+			r.translateFrom = sdf.V2i{cx, cy}
 		}
-		if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonMiddle) || inpututil.IsTouchJustReleased(0) {
-			// Actually apply the translation and force a rerender
-			cx, cy := ebiten.CursorPosition()
-			if tX, tY := ebiten.TouchPosition(0); tX != 0 && tY != 0 { // Override cursor with touch if available
-				cx, cy = tX, tY // FIXME: Probably 0 does not exist anymore
-			}
-			r.implStateLock.Lock()
-			changed := false
-			if r.translateFrom[0] < math.MaxInt { // Only if already moving...
-				clone := r.implState.Bb
-				r.implState.Bb = r.implState.Bb.Translate(
-					r.translateFrom.ToV2().Sub(sdf.V2i{cx, cy}.ToV2()).Mul(sdf.V2{X: 1, Y: -1}). // Invert Y
-															Div(r.screenSize.ToV2()).Mul(r.implState.Bb.Size()))
-				// Keep displacement until rerender is complete (avoid jump) using callback below + extra variable set here
-				r.translateFromStop = sdf.V2i{cx, cy}
-				changed = clone != r.implState.Bb
-			}
-			r.implStateLock.Unlock()
-			if changed {
-				r.rerender(func(err error) {
-					r.implStateLock.Lock()
-					r.translateFrom = sdf.V2i{math.MaxInt, math.MaxInt}
-					r.translateFromStop = sdf.V2i{math.MaxInt, math.MaxInt}
-					r.implStateLock.Unlock()
-				})
-			}
+		r.implStateLock.Unlock()
+	}
+	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonMiddle) || inpututil.IsTouchJustReleased(0) {
+		// Actually apply the translation and force a rerender
+		cx, cy := ebiten.CursorPosition()
+		if tX, tY := ebiten.TouchPosition(0); tX != 0 && tY != 0 { // Override cursor with touch if available
+			cx, cy = tX, tY // FIXME: Probably 0 does not exist anymore
 		}
-		// Reset camera transform (100% of surface)
-		if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-			r.implStateLock.Lock()
-			r.implState.Bb = toBox2(r.impl.BoundingBox()) // 100% zoom (impl2 will fix aspect ratio)
-			r.implStateLock.Unlock()
-			r.rerender()
+		r.implStateLock.Lock()
+		changed := false
+		if r.translateFrom[0] < math.MaxInt { // Only if already moving...
+			clone := r.implState.Bb
+			r.implState.Bb = r.implState.Bb.Translate(
+				r.translateFrom.ToV2().Sub(sdf.V2i{cx, cy}.ToV2()).Mul(sdf.V2{X: 1, Y: -1}). // Invert Y
+														Div(r.screenSize.ToV2()).Mul(r.implState.Bb.Size()))
+			// Keep displacement until rerender is complete (avoid jump) using callback below + extra variable set here
+			r.translateFromStop = sdf.V2i{cx, cy}
+			changed = clone != r.implState.Bb
 		}
-	case 3:
-		// Zooming
-		_, wheelUpDown := ebiten.Wheel()
-		if wheelUpDown != 0 {
-			r.implStateLock.Lock()
-			scale := 1 - wheelUpDown*100
-			scale = math.Max(1/r.zoomFactor, math.Min(r.zoomFactor, scale)) // Apply zoom limits
-			r.implState.CamDist *= scale
-			r.implStateLock.Unlock()
-			r.rerender()
+		r.implStateLock.Unlock()
+		if changed {
+			r.rerender(func(err error) {
+				r.implStateLock.Lock()
+				r.translateFrom = sdf.V2i{math.MaxInt, math.MaxInt}
+				r.translateFromStop = sdf.V2i{math.MaxInt, math.MaxInt}
+				r.implStateLock.Unlock()
+			})
 		}
-		// Rotation + Translation
-		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonMiddle) || len(inpututil.JustPressedTouchIDs()) > 0 {
-			// Save the cursor's position for previsualization and applying the final translation
-			cx, cy := ebiten.CursorPosition()
-			if tX, tY := ebiten.TouchPosition(0); tX != 0 && tY != 0 { // Override cursor with touch if available
-				cx, cy = tX, tY // FIXME: Probably 0 does not exist anymore
-			}
-			r.implStateLock.Lock()
-			if r.translateFrom[0] == math.MaxInt { // Only if not already moving...
-				r.translateFrom = sdf.V2i{cx, cy}
-			}
-			r.implStateLock.Unlock()
+	}
+	// Reset camera transform (100% of surface)
+	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+		r.implStateLock.Lock()
+		r.implState.Bb = toBox2(r.impl.BoundingBox()) // 100% zoom (impl2 will fix aspect ratio)
+		r.implStateLock.Unlock()
+		r.rerender()
+	}
+}
+
+func (r *Renderer) onUpdateInputsSDF3() {
+	// Zooming
+	_, wheelUpDown := ebiten.Wheel()
+	if wheelUpDown != 0 {
+		r.implStateLock.Lock()
+		scale := 1 - wheelUpDown*100
+		scale = math.Max(1/r.zoomFactor, math.Min(r.zoomFactor, scale)) // Apply zoom limits
+		r.implState.CamDist *= scale
+		r.implStateLock.Unlock()
+		r.rerender()
+	}
+	// Rotation + Translation
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonMiddle) || len(inpututil.JustPressedTouchIDs()) > 0 {
+		// Save the cursor's position for previsualization and applying the final translation
+		cx, cy := ebiten.CursorPosition()
+		if tX, tY := ebiten.TouchPosition(0); tX != 0 && tY != 0 { // Override cursor with touch if available
+			cx, cy = tX, tY // FIXME: Probably 0 does not exist anymore
 		}
-		if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonMiddle) || inpututil.IsTouchJustReleased(0) {
-			// Actually apply the translation and force a rerender
-			cx, cy := ebiten.CursorPosition()
-			if tX, tY := ebiten.TouchPosition(0); tX != 0 && tY != 0 { // Override cursor with touch if available
-				cx, cy = tX, tY
-			}
-			r.implStateLock.Lock()
-			changed := false
-			if r.translateFrom[0] < math.MaxInt { // Only if already moving...
-				delta := sdf.V2i{cx, cy}.ToV2().Sub(r.translateFrom.ToV2())
-				if ebiten.IsKeyPressed(ebiten.KeyShift) { // Translation
-					// Move on the plane perpendicular to the camera's direction
-					camViewMatrix := r.implState.Cam3MatrixNoTranslation()
-					camPos := r.implState.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -r.implState.CamDist}))
-					camDir := r.implState.CamCenter.Sub(camPos).Normalize()
-					camRevDir := camDir.Neg()
-					planeZero := r.implState.CamCenter
-					planeRight := camRevDir.Cross(sdf.V3{Z: 1}).Normalize()
-					planeUp := camRevDir.Cross(planeRight).Normalize()
-					newPos := planeZero. // TODO: Proper projection on plane delta computation
-								Add(planeRight.MulScalar(delta.X * r.implState.CamDist / 200)).
-								Add(planeUp.MulScalar(delta.Y * r.implState.CamDist / 200))
-					r.implState.CamCenter = newPos
-					//log.Println("New camera pivot (center", r.implState.CamCenter, ")")
-				} else { // Rotation
-					r.implState.CamYaw += delta.X / 100 // TODO: Proper delta computation
-					if r.implState.CamYaw < -math.Pi {
-						r.implState.CamYaw += 2 * math.Pi // Limits (wrap around)
-					} else if r.implState.CamYaw > math.Pi {
-						r.implState.CamYaw -= 2 * math.Pi // Limits (wrap around)
-					}
-					r.implState.CamPitch += -delta.Y / 100
-					r.implState.CamPitch = math.Max(-(math.Pi/2 - 1e-5), math.Min(math.Pi/2-1e-5, r.implState.CamPitch))
-					//log.Println("New camera rotation (pitch", r.implState.CamPitch, "yaw", r.implState.CamYaw, ")")
+		r.implStateLock.Lock()
+		if r.translateFrom[0] == math.MaxInt { // Only if not already moving...
+			r.translateFrom = sdf.V2i{cx, cy}
+		}
+		r.implStateLock.Unlock()
+	}
+	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonMiddle) || inpututil.IsTouchJustReleased(0) {
+		// Actually apply the translation and force a rerender
+		cx, cy := ebiten.CursorPosition()
+		if tX, tY := ebiten.TouchPosition(0); tX != 0 && tY != 0 { // Override cursor with touch if available
+			cx, cy = tX, tY
+		}
+		r.implStateLock.Lock()
+		changed := false
+		if r.translateFrom[0] < math.MaxInt { // Only if already moving...
+			delta := sdf.V2i{cx, cy}.ToV2().Sub(r.translateFrom.ToV2())
+			if ebiten.IsKeyPressed(ebiten.KeyShift) { // Translation
+				// Move on the plane perpendicular to the camera's direction
+				camViewMatrix := r.implState.Cam3MatrixNoTranslation()
+				camPos := r.implState.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -r.implState.CamDist}))
+				camDir := r.implState.CamCenter.Sub(camPos).Normalize()
+				planeZero := r.implState.CamCenter
+				planeRight := sdf.V3{Z: 1}.Cross(camDir).Normalize()
+				planeUp := camDir.Cross(planeRight).Normalize()
+				newPos := planeZero. // TODO: Proper projection on plane delta computation
+							Add(planeRight.MulScalar(delta.X * r.implState.CamDist / 200)).
+							Add(planeUp.MulScalar(delta.Y * r.implState.CamDist / 200))
+				r.implState.CamCenter = newPos
+				//log.Println("New camera pivot (center", r.implState.CamCenter, ")")
+			} else { // Rotation
+				r.implState.CamYaw -= delta.X / 100 // TODO: Proper delta computation
+				if r.implState.CamYaw < -math.Pi {
+					r.implState.CamYaw += 2 * math.Pi // Limits (wrap around)
+				} else if r.implState.CamYaw > math.Pi {
+					r.implState.CamYaw -= 2 * math.Pi // Limits (wrap around)
 				}
-				// Keep displacement until rerender is complete (avoid jump) using callback below + extra variable set here
-				r.translateFromStop = sdf.V2i{cx, cy}
-				changed = true
+				r.implState.CamPitch -= delta.Y / 100
+				r.implState.CamPitch = math.Max(-(math.Pi/2 - 1e-5), math.Min(math.Pi/2-1e-5, r.implState.CamPitch))
+				//log.Println("New camera rotation (pitch", r.implState.CamPitch, "yaw", r.implState.CamYaw, ")")
 			}
-			r.implStateLock.Unlock()
-			if changed {
-				r.rerender(func(err error) {
-					r.implStateLock.Lock()
-					r.translateFrom = sdf.V2i{math.MaxInt, math.MaxInt}
-					r.translateFromStop = sdf.V2i{math.MaxInt, math.MaxInt}
-					r.implStateLock.Unlock()
-				})
-			}
+			// Keep displacement until rerender is complete (avoid jump) using callback below + extra variable set here
+			r.translateFromStop = sdf.V2i{cx, cy}
+			changed = true
 		}
-		// Reset camera transform
-		if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-			r.implStateLock.Lock()
-			r.implState.ResetCam3(r)
-			r.implStateLock.Unlock()
-			r.rerender()
+		r.implStateLock.Unlock()
+		if changed {
+			r.rerender(func(err error) {
+				r.implStateLock.Lock()
+				r.translateFrom = sdf.V2i{math.MaxInt, math.MaxInt}
+				r.translateFromStop = sdf.V2i{math.MaxInt, math.MaxInt}
+				r.implStateLock.Unlock()
+			})
 		}
-	default:
-		panic("RendererState.onUpdateInputs not implemented for " + strconv.Itoa(r.implDimCache) + " dimensions")
+	}
+	// Reset camera transform
+	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+		r.implStateLock.Lock()
+		r.implState.ResetCam3(r)
+		r.implStateLock.Unlock()
+		r.rerender()
 	}
 }
 

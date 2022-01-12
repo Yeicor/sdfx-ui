@@ -5,6 +5,6 @@ package dev
 
 import "github.com/fsnotify/fsnotify"
 
-func NewFsWatcher() (*fsnotify.Watcher, error) {
+func newFsWatcher() (*fsnotify.Watcher, error) {
 	return fsnotify.NewWatcher()
 }
