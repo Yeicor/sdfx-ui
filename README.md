@@ -21,7 +21,7 @@ calling `ui.NewRenderer(anySDF).Run()`.
 package main
 
 import (
-	ui "github.com/Yeicor/sdfx-ui"
+	"github.com/Yeicor/sdfx-ui"
 	"github.com/deadsy/sdfx/sdf"
 )
 
