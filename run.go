@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/hajimehoshi/ebiten"
 	"io"
@@ -74,7 +75,7 @@ func (r *Renderer) runChild(requestedAddress string) error {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, signals()...)
 	// Set up a remote service that the parent renderer will connect to view the new SDF
-	service := newDevRendererService(r.impl, done)
+	service := internal.NewDevRendererService(r.impl, done)
 	service.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
 	// TODO: Use service.ServeConn() on a pipe to the parent, avoiding using ports (must be as cross-platform as possible)
 	listener, err := net.Listen("tcp", requestedAddress) // Close() called on srv.Close()

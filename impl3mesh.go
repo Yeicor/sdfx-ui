@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/render"
 	"github.com/deadsy/sdfx/sdf"
 	"github.com/fogleman/fauxgl"
@@ -55,9 +56,9 @@ func (rm *renderer3mesh) ColorModes() int {
 	return 3
 }
 
-func (rm *renderer3mesh) Render(r *renderer3, args *renderArgs) error {
-	args.stateLock.Lock()
-	bounds := args.fullRender.Bounds()
+func (rm *renderer3mesh) Render(r *renderer3, args *internal.RenderArgs) error {
+	args.StateLock.Lock()
+	bounds := args.FullRender.Bounds()
 	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
 	if rm.lastContext == nil || rm.lastContext.Width != boundsSize[0] || rm.lastContext.Height != boundsSize[1] {
 		// Rebuild rendering context only when needed
@@ -72,9 +73,9 @@ func (rm *renderer3mesh) Render(r *renderer3, args *renderArgs) error {
 	//args.state.CamCenter.X = -args.state.CamCenter.X
 	//args.state.CamCenter.Y = -args.state.CamCenter.Y
 	aspectRatio := float64(boundsSize[0]) / float64(boundsSize[1])
-	camViewMatrix := args.state.cam3MatrixNoTranslation()
-	camPos := args.state.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.state.CamDist / 1.12 /* Adjust to other implementation*/}))
-	camDir := args.state.CamCenter.Sub(camPos).Normalize()
+	camViewMatrix := cam3MatrixNoTranslation(args.State)
+	camPos := args.State.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.State.CamDist / 1.12 /* Adjust to other implementation*/}))
+	camDir := args.State.CamCenter.Sub(camPos).Normalize()
 	camFovX := r.camFOV
 	camFovY := 2 * math.Atan(math.Tan(camFovX/2)*aspectRatio)
 	// Approximate max ray length for the whole camera (it could be improved... or maybe a fixed value is better)
@@ -85,15 +86,15 @@ func (rm *renderer3mesh) Render(r *renderer3, args *renderArgs) error {
 		maxRay += sBb.Size().Length()
 	}
 	maxRay *= 4 // Rays thrown from the camera at different angles may need a little more maxRay
-	camFauxglMatrix := fauxgl.LookAt(r3mToFauxglVector(camPos), r3mToFauxglVector(args.state.CamCenter), fauxgl.Vector{Z: 1}).
+	camFauxglMatrix := fauxgl.LookAt(r3mToFauxglVector(camPos), r3mToFauxglVector(args.State.CamCenter), fauxgl.Vector{Z: 1}).
 		Perspective(camFovY*180/math.Pi, aspectRatio, 1e-6, maxRay)
 	//args.state.CamYaw -= math.Pi // HACK (restore)
 	//args.state.CamCenter.X = -args.state.CamCenter.X
 	//args.state.CamCenter.Y = -args.state.CamCenter.Y
-	args.stateLock.Unlock()
+	args.StateLock.Unlock()
 
 	// Configure the shader (based on ColorMode)
-	if args.state.ColorMode == 0 {
+	if args.State.ColorMode == 0 {
 		// use builtin phong shader
 		shader := fauxgl.NewPhongShader(camFauxglMatrix, r3mToFauxglVector(r.lightDir), r3mToFauxglVector(camPos))
 		shader.ObjectColor = fauxgl.MakeColor(r.surfaceColor)
@@ -102,21 +103,21 @@ func (rm *renderer3mesh) Render(r *renderer3, args *renderArgs) error {
 	} else {
 		// use normal based shader
 		rm.lastContext.Shader = &r3mNormalShader{camFauxglMatrix}
-		rm.lastContext.Wireframe = args.state.ColorMode == 2 // set to wireframe mode
+		rm.lastContext.Wireframe = args.State.ColorMode == 2 // set to wireframe mode
 	}
 	// Perform the actual render
 	rm.lastContext.DrawMesh(rm.mesh) // This is already multithread, no need to parallelize anymore
 	img := rm.lastContext.Image()
 
 	// Copy output full render (no partial renders supported)
-	args.cachedRenderLock.Lock()
-	copy(args.fullRender.Pix[args.fullRender.PixOffset(0, 0):], img.(*image.NRGBA).Pix[img.(*image.NRGBA).PixOffset(0, 0):])
-	args.cachedRenderLock.Unlock()
+	args.CachedRenderLock.Lock()
+	copy(args.FullRender.Pix[args.FullRender.PixOffset(0, 0):], img.(*image.NRGBA).Pix[img.(*image.NRGBA).PixOffset(0, 0):])
+	args.CachedRenderLock.Unlock()
 
 	// TODO: Draw bounding boxes over the image
 
-	if args.partialRenders != nil {
-		close(args.partialRenders)
+	if args.PartialRenders != nil {
+		close(args.PartialRenders)
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
 	"image/color"
 	"math"
@@ -100,7 +101,7 @@ type renderer3 struct {
 	meshRenderer                                 *renderer3mesh // Alternative renderer
 }
 
-func newDevRenderer3(s sdf.SDF3) devRendererImpl {
+func newDevRenderer3(s sdf.SDF3) internal.DevRendererImpl {
 	r := &renderer3{
 		s:                  &invertZ{s}, // TODO: fix rendering to use Z+ (instead of Z-) as UP instead of this hack.
 		camFOV:             math.Pi / 2, // 90º FOV-X
@@ -135,21 +136,21 @@ func (r *renderer3) ColorModes() int {
 	return 2
 }
 
-func (r *renderer3) Render(args *renderArgs) error {
+func (r *renderer3) Render(args *internal.RenderArgs) error {
 	// Use alternative renderer instead if configured to do so
 	if r.meshRenderer != nil {
 		return r.meshRenderer.Render(r, args)
 	}
 
 	// Compute camera matrix and more (once per render)
-	args.stateLock.RLock()
-	colorModeCopy := args.state.ColorMode
-	bounds := args.fullRender.Bounds()
+	args.StateLock.RLock()
+	colorModeCopy := args.State.ColorMode
+	bounds := args.FullRender.Bounds()
 	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
 	//aspectRatio := float64(boundsSize[0]) / float64(boundsSize[1])
-	camViewMatrix := args.state.cam3MatrixNoTranslation()
-	camPos := args.state.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.state.CamDist}))
-	camDir := args.state.CamCenter.Sub(camPos).Normalize()
+	camViewMatrix := cam3MatrixNoTranslation(args.State)
+	camPos := args.State.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.State.CamDist}))
+	camDir := args.State.CamCenter.Sub(camPos).Normalize()
 	camFovX := r.camFOV
 	camFovY := 2 * math.Atan(math.Tan(camFovX/2) /**aspectRatio*/)
 	// Approximate max ray length for the whole camera (it could be improved... or maybe a fixed value is better)
@@ -160,7 +161,7 @@ func (r *renderer3) Render(args *renderArgs) error {
 		maxRay += sBb.Size().Length()
 	}
 	maxRay *= 4 // Rays thrown from the camera at different angles may need a little more maxRay
-	args.stateLock.RUnlock()
+	args.StateLock.RUnlock()
 
 	// Perform the actual render
 	camHalfFov := sdf.V2{X: camFovX, Y: camFovY}.DivScalar(2)

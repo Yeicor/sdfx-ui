@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
 	"image/color"
 	"math"
@@ -49,7 +50,7 @@ type renderer2 struct {
 	evalScanCells    sdf.V2i
 }
 
-func newDevRenderer2(s sdf.SDF2) devRendererImpl {
+func newDevRenderer2(s sdf.SDF2) internal.DevRendererImpl {
 	r := &renderer2{
 		s:             s,
 		evalScanCells: sdf.V2i{128, 128},
@@ -72,7 +73,7 @@ func (r *renderer2) ColorModes() int {
 	return 2
 }
 
-func (r *renderer2) Render(args *renderArgs) error {
+func (r *renderer2) Render(args *internal.RenderArgs) error {
 	if r.evalMin == 0 && r.evalMax == 0 { // First render (ignoring external cache)
 		// Compute minimum and maximum evaluate values for a shared color scale for all blocks
 		r.evalMin, r.evalMax = utilSdf2MinMax(r.s, r.s.BoundingBox(), r.evalScanCells)
@@ -80,24 +81,24 @@ func (r *renderer2) Render(args *renderArgs) error {
 	}
 
 	// Maintain Bb aspect ratio on ResInv change, increasing the size as needed
-	args.stateLock.Lock()
-	fullRenderSize := args.fullRender.Bounds().Size()
-	bbAspectRatio := args.state.Bb.Size().X / args.state.Bb.Size().Y
+	args.StateLock.Lock()
+	fullRenderSize := args.FullRender.Bounds().Size()
+	bbAspectRatio := args.State.Bb.Size().X / args.State.Bb.Size().Y
 	screenAspectRatio := float64(fullRenderSize.X) / float64(fullRenderSize.Y)
 	if math.Abs(bbAspectRatio-screenAspectRatio) > 1e-12 {
 		if bbAspectRatio > screenAspectRatio {
 			scaleYBy := bbAspectRatio / screenAspectRatio
-			args.state.Bb = sdf.NewBox2(args.state.Bb.Center(), args.state.Bb.Size().Mul(sdf.V2{X: 1, Y: scaleYBy}))
+			args.State.Bb = sdf.NewBox2(args.State.Bb.Center(), args.State.Bb.Size().Mul(sdf.V2{X: 1, Y: scaleYBy}))
 		} else {
 			scaleXBy := screenAspectRatio / bbAspectRatio
-			args.state.Bb = sdf.NewBox2(args.state.Bb.Center(), args.state.Bb.Size().Mul(sdf.V2{X: scaleXBy, Y: 1}))
+			args.State.Bb = sdf.NewBox2(args.State.Bb.Center(), args.State.Bb.Size().Mul(sdf.V2{X: scaleXBy, Y: 1}))
 		}
 	}
-	args.stateLock.Unlock()
+	args.StateLock.Unlock()
 
 	// Apply color mode
 	evalMin, evalMax := r.evalMin, r.evalMax
-	if args.state.ColorMode == 1 { // Force black and white to see the surface better
+	if args.State.ColorMode == 1 { // Force black and white to see the surface better
 		evalMin, evalMax = -1e-12, 1e-12
 	}
 
@@ -105,9 +106,9 @@ func (r *renderer2) Render(args *renderArgs) error {
 	return implCommonRender(func(pixel sdf.V2i, pixel01 sdf.V2) interface{} { return nil },
 		func(pixel sdf.V2i, pixel01 sdf.V2, job interface{}) *jobResult {
 			pixel01.Y = 1 - pixel01.Y // Inverted Y
-			args.stateLock.RLock()
-			pos := args.state.Bb.Min.Add(pixel01.Mul(args.state.Bb.Size()))
-			args.stateLock.RUnlock()
+			args.StateLock.RLock()
+			pos := args.State.Bb.Min.Add(pixel01.Mul(args.State.Bb.Size()))
+			args.StateLock.RUnlock()
 			grayVal := imageColor2(r.s.Evaluate(pos), evalMin, evalMax)
 			return &jobResult{
 				pixel: pixel,

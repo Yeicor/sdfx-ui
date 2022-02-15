@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/deadsy/sdfx/sdf"
 	"github.com/hajimehoshi/ebiten"
@@ -36,21 +37,21 @@ import (
 // It uses [ebiten](https://github.com/hajimehoshi/ebiten) for rendering, which is cross-platform, so it could also
 // be used to showcase a surface (without automatic updates) creating an application for desktop, web or mobile.
 type Renderer struct {
-	impl                devRendererImpl   // the implementation to use SDF2/SDF3/remote process.
-	implDimCache        int               // the number of dimensions of impl (cached to avoid remote calls every frame)
-	implLock            *sync.RWMutex     // the implementation lock
-	implState           *RendererState    // the renderer's state, so impl can be swapped while keeping the state.
-	implStateLock       *sync.RWMutex     // the renderer's state lock
-	cachedRender        *ebiten.Image     // the latest cached render (to avoid rendering every frame, or frame parts even if nothing changed)
-	cachedRenderCPU     *image.RGBA       // the latest cached render (to avoid rendering every frame, or frame parts even if nothing changed)
-	cachedRenderBb2     sdf.Box2          // what part of the SDF2 the latest cached render represents (not implemented, and no equivalent optimization available for SDF3s)
-	cachedPartialRender *ebiten.Image     // the latest partial render (to display render progress visually)
-	cachedRenderLock    *sync.RWMutex     // the lock over tha partial render
-	screenSize          sdf.V2i           // the screen ResInv
-	renderingCtxCancel  func()            // non-nil if we are currently rendering
-	renderingLock       trylock.TryLocker // locked when we are rendering, use renderingCtx to cancel the previous render
-	translateFrom       sdf.V2i           // Translate/rotate (for 3D) screen space start
-	translateFromStop   sdf.V2i           // Translate/rotate (for 3D) screen space end (recorded while processing the new frame)
+	impl                internal.DevRendererImpl // the implementation to use SDF2/SDF3/remote process.
+	implDimCache        int                      // the number of dimensions of impl (cached to avoid remote calls every frame)
+	implLock            *sync.RWMutex            // the implementation lock
+	implState           *internal.RendererState  // the renderer's state, so impl can be swapped while keeping the state.
+	implStateLock       *sync.RWMutex            // the renderer's state lock
+	cachedRender        *ebiten.Image            // the latest cached render (to avoid rendering every frame, or frame parts even if nothing changed)
+	cachedRenderCPU     *image.RGBA              // the latest cached render (to avoid rendering every frame, or frame parts even if nothing changed)
+	cachedRenderBb2     sdf.Box2                 // what part of the SDF2 the latest cached render represents (not implemented, and no equivalent optimization available for SDF3s)
+	cachedPartialRender *ebiten.Image            // the latest partial render (to display render progress visually)
+	cachedRenderLock    *sync.RWMutex            // the lock over tha partial render
+	screenSize          sdf.V2i                  // the screen ResInv
+	renderingCtxCancel  func()                   // non-nil if we are currently rendering
+	renderingLock       trylock.TryLocker        // locked when we are rendering, use renderingCtx to cancel the previous render
+	translateFrom       sdf.V2i                  // Translate/rotate (for 3D) screen space start
+	translateFromStop   sdf.V2i                  // Translate/rotate (for 3D) screen space end (recorded while processing the new frame)
 	// Static configuration
 	runCmd             func() *exec.Cmd // generates a new command to compile and run the code for the new SDF
 	watchFiles         []string         // the files to watch for recompilation of new code

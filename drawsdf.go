@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
 	"github.com/hajimehoshi/ebiten"
 	"image"
@@ -113,13 +114,13 @@ func (r *Renderer) rerender(callbacks ...func(err error)) {
 		}
 		r.implStateLock.RUnlock()
 		r.implLock.RLock()
-		err = r.impl.Render(&renderArgs{
-			ctx:              renderCtx,
-			state:            r.implState,
-			stateLock:        r.implStateLock,
-			cachedRenderLock: r.cachedRenderLock,
-			partialRenders:   partialRenders,
-			fullRender:       r.cachedRenderCPU,
+		err = r.impl.Render(&internal.RenderArgs{
+			Ctx:              renderCtx,
+			State:            r.implState,
+			StateLock:        r.implStateLock,
+			CachedRenderLock: r.cachedRenderLock,
+			PartialRenders:   partialRenders,
+			FullRender:       r.cachedRenderCPU,
 		})
 		r.implLock.RUnlock()
 		if err != nil {

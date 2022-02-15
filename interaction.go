@@ -142,7 +142,7 @@ func (r *Renderer) onUpdateInputsSDF3() {
 	// Reset camera transform
 	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		r.implStateLock.Lock()
-		r.implState.resetCam3(r)
+		resetCam3(r.implState, r)
 		r.implStateLock.Unlock()
 		r.rerender()
 	}
@@ -174,7 +174,7 @@ func (r *Renderer) onUpdateInputsSDF3RotTrans() {
 			delta := sdf.V2i{cx, cy}.ToV2().Sub(r.translateFrom.ToV2())
 			if ebiten.IsKeyPressed(ebiten.KeyShift) { // Translation
 				// Move on the plane perpendicular to the camera's direction
-				camViewMatrix := r.implState.cam3MatrixNoTranslation()
+				camViewMatrix := cam3MatrixNoTranslation(r.implState)
 				camPos := r.implState.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -r.implState.CamDist}))
 				camDir := r.implState.CamCenter.Sub(camPos).Normalize()
 				planeZero := r.implState.CamCenter

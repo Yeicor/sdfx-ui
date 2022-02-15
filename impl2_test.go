@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
 	"image"
 	"sync"
@@ -21,7 +22,7 @@ func BenchmarkDevRenderer2_Render(b *testing.B) {
 	lock2 := &sync.RWMutex{}
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		err := impl.Render(&renderArgs{ctx: context.Background(), state: &state, stateLock: lock1, cachedRenderLock: lock2, fullRender: fullRender})
+		err := impl.Render(&internal.RenderArgs{Ctx: context.Background(), State: &state, StateLock: lock1, CachedRenderLock: lock2, FullRender: fullRender})
 		if err != nil {
 			b.Fatal(err)
 		}
