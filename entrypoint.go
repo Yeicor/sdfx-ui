@@ -90,6 +90,7 @@ func NewRenderer(anySDF interface{}, opts ...Option) *Renderer {
 	}
 	r.implDimCache = r.impl.Dimensions()
 	r.implState = r.newRendererState()
+	r.implState.ReflectTree = r.impl.ReflectTree() // Compute the reflection-based tree once on load and cache it
 	// Apply all configuration options
 	for _, opt := range opts {
 		opt(r)

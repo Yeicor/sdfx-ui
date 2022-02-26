@@ -3,7 +3,9 @@ package ui
 import (
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
+	"image"
 	"image/color"
+	"image/color/palette"
 	"math"
 )
 
@@ -39,6 +41,15 @@ func Opt2EvalScanCells(cells sdf.V2i) Option {
 	}
 }
 
+// Opt2BBColor sets the bounding box colors for the different objects.
+func Opt2BBColor(getColor func(idx int) color.Color) Option {
+	return func(r *Renderer) {
+		if r2, ok := r.impl.(*renderer2); ok {
+			r2.getBBColor = getColor
+		}
+	}
+}
+
 //-----------------------------------------------------------------------------
 // RENDERER
 //-----------------------------------------------------------------------------
@@ -48,12 +59,16 @@ type renderer2 struct {
 	pixelsRand       []int    // Cached set of pixels in random order to avoid shuffling (reset on recompilation and resolution changes)
 	evalMin, evalMax float64  // The pre-computed minimum and maximum of the whole surface (for stable colors and speed)
 	evalScanCells    sdf.V2i
+	getBBColor       func(idx int) color.Color
 }
 
 func newDevRenderer2(s sdf.SDF2) internal.DevRendererImpl {
 	r := &renderer2{
 		s:             s,
 		evalScanCells: sdf.V2i{128, 128},
+		getBBColor: func(idx int) color.Color {
+			return palette.WebSafe[((idx + 1) % len(palette.WebSafe))]
+		},
 	}
 	return r
 }
@@ -65,6 +80,10 @@ func (r *renderer2) Dimensions() int {
 func (r *renderer2) BoundingBox() sdf.Box3 {
 	bb := r.s.BoundingBox()
 	return sdf.Box3{Min: bb.Min.ToV3(0), Max: bb.Max.ToV3(0)}
+}
+
+func (r *renderer2) ReflectTree() *internal.ReflectTree {
+	return internal.NewReflectionSDF(r.s).GetReflectSDFTree2()
 }
 
 func (r *renderer2) ColorModes() int {
@@ -80,7 +99,7 @@ func (r *renderer2) Render(args *internal.RenderArgs) error {
 		//log.Println("MIN:", r.evalMin, "MAX:", r.evalMax)
 	}
 
-	// Maintain Bb aspect ratio on ResInv change, increasing the size as needed
+	// Maintain Bb aspect ratio on ResInv change, increasing the sizeCorner as needed
 	args.StateLock.Lock()
 	fullRenderSize := args.FullRender.Bounds().Size()
 	bbAspectRatio := args.State.Bb.Size().X / args.State.Bb.Size().Y
@@ -103,7 +122,7 @@ func (r *renderer2) Render(args *internal.RenderArgs) error {
 	}
 
 	// Perform the actual render
-	return implCommonRender(func(pixel sdf.V2i, pixel01 sdf.V2) interface{} { return nil },
+	err := implCommonRender(func(pixel sdf.V2i, pixel01 sdf.V2) interface{} { return nil },
 		func(pixel sdf.V2i, pixel01 sdf.V2, job interface{}) *jobResult {
 			pixel01.Y = 1 - pixel01.Y // Inverted Y
 			args.StateLock.RLock()
@@ -116,7 +135,22 @@ func (r *renderer2) Render(args *internal.RenderArgs) error {
 			}
 		}, args, &r.pixelsRand)
 
-	// TODO: Draw bounding boxes over the image
+	if err == nil && args.State.DrawBbs {
+		// Draw bounding boxes over the image
+		boxes2 := args.State.ReflectTree.GetBoundingBoxes2()
+		for i, bb := range boxes2 {
+			//log.Println("Draw", bb)
+			pixel01Min := bb.Min.Sub(args.State.Bb.Min).Div(args.State.Bb.Size())
+			pixel01Max := bb.Max.Sub(args.State.Bb.Min).Div(args.State.Bb.Size())
+			fullRenderSizeV2 := sdf.V2{X: float64(fullRenderSize.X), Y: float64(fullRenderSize.Y)}
+			posMin := pixel01Min.Mul(fullRenderSizeV2)
+			posMax := pixel01Max.Mul(fullRenderSizeV2)
+			drawRect(args.FullRender, int(posMin.X), fullRenderSize.Y-int(posMax.Y),
+				int(posMax.X), fullRenderSize.Y-int(posMin.Y), r.getBBColor(i))
+		}
+	}
+
+	return err
 }
 
 // imageColor2 returns the grayscale color for the returned SDF2.Evaluate value, given the reference minimum and maximum
@@ -132,4 +166,30 @@ func imageColor2(dist, dmin, dmax float64) float64 {
 		val = math.Max(0, math.Min(0.5, 0.5*((dist-dmin)/(-dmin))))
 	}
 	return val
+}
+
+// drawHLine draws a horizontal line
+func drawHLine(img *image.RGBA, x1, y, x2 int, col color.Color) {
+	for ; x1 <= x2; x1++ {
+		if x1 >= 0 && x1 < img.Bounds().Dx() && y >= 0 && y < img.Bounds().Dy() {
+			img.Set(x1, y, col)
+		}
+	}
+}
+
+// drawVLine draws a veritcal line
+func drawVLine(img *image.RGBA, x, y1, y2 int, col color.Color) {
+	for ; y1 <= y2; y1++ {
+		if x >= 0 && x < img.Bounds().Dx() && y1 >= 0 && y1 < img.Bounds().Dy() {
+			img.Set(x, y1, col)
+		}
+	}
+}
+
+// drawRect draws a rectangle utilizing drawHLine() and drawVLine()
+func drawRect(img *image.RGBA, x1, y1, x2, y2 int, col color.Color) {
+	drawHLine(img, x1, y1, x2, col)
+	drawHLine(img, x1, y2, x2, col)
+	drawVLine(img, x1, y1, y2, col)
+	drawVLine(img, x2, y1, y2, col)
 }

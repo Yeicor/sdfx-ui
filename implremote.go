@@ -11,7 +11,8 @@ import (
 
 // rendererClient implements DevRendererImpl by calling a remote implementation (using Go's net/rpc)
 type rendererClient struct {
-	cl *rpc.Client
+	cl                *rpc.Client
+	cachedReflectTree *internal.ReflectTree // Avoids sending the whole metadata tree over the network more than once
 }
 
 // newDevRendererClient see rendererClient
@@ -37,6 +38,19 @@ func (d *rendererClient) BoundingBox() sdf.Box3 {
 	return out
 }
 
+func (d *rendererClient) ReflectTree() *internal.ReflectTree {
+	if d.cachedReflectTree != nil {
+		return d.cachedReflectTree
+	}
+	var in sdf.Box3
+	var out internal.ReflectTree
+	err := d.cl.Call("RendererService.BoundingBox", &in, &out)
+	if err != nil {
+		log.Println("[DevRenderer] Error on remote call (RendererService.BoundingBox):", err)
+	}
+	return &out
+}
+
 func (d *rendererClient) ColorModes() int {
 	var out int
 	err := d.cl.Call("RendererService.ColorModes", &out, &out)
@@ -53,6 +67,7 @@ func (d *rendererClient) Render(args *internal.RenderArgs) error {
 		RenderSize: sdf.V2i{fullRenderSize.X, fullRenderSize.Y},
 		State:      deepcopy.MustAnything(args.State).(*internal.RendererState),
 	}
+	argsRemote.State.ReflectTree = nil // HACK: Avoids sending the whole metadata tree over the network more than once
 	args.StateLock.RUnlock()
 	var ignoreMe int
 	err := d.cl.Call("RendererService.RenderStart", argsRemote, &ignoreMe)
@@ -100,7 +115,3 @@ func (d *rendererClient) Shutdown(timeout time.Duration) error {
 	var out int
 	return d.cl.Call("RendererService.Shutdown", &timeout, &out)
 }
-
-//goland:noinspection GoDeprecation
-
-//goland:noinspection GoDeprecation

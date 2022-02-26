@@ -3,7 +3,9 @@ package ui
 import (
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
+	"image"
 	"image/color"
+	"image/color/palette"
 	"math"
 )
 
@@ -74,12 +76,21 @@ func Opt3NormalEps(normalEps float64) Option {
 	}
 }
 
-// Opt3LightDir sets the light direction for basic lighting simulation (set when Color: true).
+// Opt3LightDir sets the light direction for basic lighting simulation.
 // Actually, two lights are simulated (the given one and the opposite one), as part of the surface would be hard to see otherwise
 func Opt3LightDir(lightDir sdf.V3) Option {
 	return func(r *Renderer) {
 		if r3, ok := r.impl.(*renderer3); ok {
 			r3.lightDir = lightDir.Normalize()
+		}
+	}
+}
+
+// Opt3BBColor sets the bounding box colors for the different objects.
+func Opt3BBColor(getColor func(idx int) color.Color) Option {
+	return func(r *Renderer) {
+		if r3, ok := r.impl.(*renderer3); ok {
+			r3.getBBColor = getColor
 		}
 	}
 }
@@ -95,10 +106,14 @@ type renderer3 struct {
 	surfaceColor, backgroundColor, errorColor color.RGBA
 	normalEps                                 float64
 	lightDir                                  sdf.V3 // The light's direction for ColorMode: true (simple simulation based on normals)
+	depthBuffer                               []float64
+	getBBColor                                func(idx int) color.Color
+
 	// Raycast configuration
 	rayScaleAndSigmoid, rayStepScale, rayEpsilon float64
 	rayMaxSteps                                  int
-	meshRenderer                                 *renderer3mesh // Alternative renderer
+
+	meshRenderer *renderer3mesh // Alternative renderer
 }
 
 func newDevRenderer3(s sdf.SDF3) internal.DevRendererImpl {
@@ -106,7 +121,7 @@ func newDevRenderer3(s sdf.SDF3) internal.DevRendererImpl {
 		s:                  &invertZ{s}, // TODO: fix rendering to use Z+ (instead of Z-) as UP instead of this hack.
 		camFOV:             math.Pi / 2, // 90º FOV-X
 		surfaceColor:       color.RGBA{R: 255 - 20, G: 255 - 40, B: 255 - 80, A: 255},
-		backgroundColor:    color.RGBA{B: 50, A: 255},
+		backgroundColor:    color.RGBA{R: 50, G: 100, B: 150, A: 255},
 		errorColor:         color.RGBA{R: 255, B: 255, A: 255},
 		normalEps:          1e-6,
 		lightDir:           sdf.V3{X: -1, Y: 1, Z: 1}.Normalize(), // Same as default camera TODO: Follow camera mode?
@@ -114,6 +129,10 @@ func newDevRenderer3(s sdf.SDF3) internal.DevRendererImpl {
 		rayStepScale:       1,
 		rayEpsilon:         1e-2,
 		rayMaxSteps:        100,
+		meshRenderer:       &renderer3mesh{},
+		getBBColor: func(idx int) color.Color {
+			return palette.WebSafe[((idx + 1) % len(palette.WebSafe))]
+		},
 	}
 	return r
 }
@@ -124,6 +143,10 @@ func (r *renderer3) Dimensions() int {
 
 func (r *renderer3) BoundingBox() sdf.Box3 {
 	return r.s.BoundingBox()
+}
+
+func (r *renderer3) ReflectTree() *internal.ReflectTree {
+	return internal.NewReflectionSDF(r.s).GetReflectSDFTree3()
 }
 
 func (r *renderer3) ColorModes() int {
@@ -138,8 +161,9 @@ func (r *renderer3) ColorModes() int {
 
 func (r *renderer3) Render(args *internal.RenderArgs) error {
 	// Use alternative renderer instead if configured to do so
-	if r.meshRenderer != nil {
-		return r.meshRenderer.Render(r, args)
+	if r.meshRenderer != nil && r.meshRenderer.mesh != nil {
+		err := r.meshRenderer.Render(r, args)
+		return err
 	}
 
 	// Compute camera matrix and more (once per render)
@@ -161,11 +185,24 @@ func (r *renderer3) Render(args *internal.RenderArgs) error {
 		maxRay += sBb.Size().Length()
 	}
 	maxRay *= 4 // Rays thrown from the camera at different angles may need a little more maxRay
+
+	if args.State.DrawBbs {
+		// Reset internal depth buffer
+		expectedLen := boundsSize[0] * boundsSize[1]
+		if len(r.depthBuffer) != expectedLen {
+			r.depthBuffer = make([]float64, expectedLen)
+		}
+		for i := 0; i < len(r.depthBuffer); i++ {
+			r.depthBuffer[i] = math.MaxFloat64
+		}
+	} else {
+		r.depthBuffer = nil
+	}
 	args.StateLock.RUnlock()
 
 	// Perform the actual render
 	camHalfFov := sdf.V2{X: camFovX, Y: camFovY}.DivScalar(2)
-	return implCommonRender(func(pixel sdf.V2i, pixel01 sdf.V2) interface{} {
+	err := implCommonRender(func(pixel sdf.V2i, pixel01 sdf.V2) interface{} {
 		return &pixelRender{
 			pixel:         pixel,
 			bounds:        boundsSize,
@@ -184,7 +221,49 @@ func (r *renderer3) Render(args *internal.RenderArgs) error {
 		}
 	}, args, &r.pixelsRand)
 
-	// TODO: Draw bounding boxes over the image
+	if err == nil && args.State.DrawBbs {
+		// FIXME: Assumes perfectly matching cameras (between both 3D renderers),
+		//  but they differ (in aspect ratio <--> FoV, matching on square windows)
+		r.renderBbs(args, r.depthBuffer)
+	}
+
+	return err
+}
+
+func (r *renderer3) renderBbs(args *internal.RenderArgs, depthBuffer []float64) {
+	// Needed to render boxes
+	backgroundColorOld := r.backgroundColor
+	r.backgroundColor = color.RGBA{A: 0}
+	camMatrix, _ := r.meshRenderer.reset(r, args)
+	r.backgroundColor = backgroundColorOld
+	// Draw bounding boxes over the image
+	var boxesRender *image.NRGBA
+	for i, bb := range args.State.ReflectTree.GetBoundingBoxes3() {
+		boxesRender = r.meshRenderer.renderBoundingBox(bb, camMatrix, r.getBBColor(i))
+	}
+	if boxesRender != nil {
+		// Now merge both renders by depth!
+		size := args.FullRender.Bounds().Size()
+		boxesDepth := r.meshRenderer.depthBuffer()
+		i := 0
+		for y := 0; y < size.Y; y++ {
+			for x := 0; x < size.X; x++ {
+				overlay := boxesRender.NRGBAAt(x, y)
+				if overlay.A > 0 {
+					boxesRenderDepth := boxesDepth[i]
+					renderDepth := depthBuffer[i]
+					//if renderDepth < math.MaxFloat64/2 {
+					//	fmt.Println(boxesRenderDepth, renderDepth)
+					//}
+					if boxesRenderDepth < renderDepth {
+						//prevColor := args.FullRender.RGBAAt(x, y)
+						args.FullRender.Set(x, y, overlay)
+					}
+				}
+				i++
+			}
+		}
+	}
 }
 
 type pixelRender struct {
@@ -201,6 +280,10 @@ type pixelRender struct {
 }
 
 func (r *renderer3) samplePixel(pixel01 sdf.V2, job *pixelRender) color.RGBA {
+	depthBufferIndex := -1
+	if len(r.depthBuffer) > 0 {
+		depthBufferIndex = job.pixel[1]*job.bounds[0] + job.pixel[0]
+	}
 	// Generate the ray for this pixel using the given camera parameters
 	rayFrom := job.camPos
 	// Get pixel inside of ([-1, 1], [-1, 1])
@@ -218,6 +301,9 @@ func (r *renderer3) samplePixel(pixel01 sdf.V2, job *pixelRender) color.RGBA {
 	hit, t, steps := sdf.Raycast3(r.s, rayFrom, rayDir, r.rayScaleAndSigmoid, r.rayStepScale, r.rayEpsilon, job.maxRay, r.rayMaxSteps)
 	// Convert the possible hit to a color
 	if t >= 0 { // Hit the surface
+		if len(r.depthBuffer) > 0 { // HACK: Depth function similar to fauxgl (but not the same)
+			r.depthBuffer[depthBufferIndex] = 1 / (1 + math.Exp(-t/10))
+		}
 		normal := sdf.Normal3(r.s, hit, r.normalEps)
 		if job.color == 0 { // Basic lighting + constant color
 			lightIntensity := math.Abs(normal.Dot(r.lightDir)) // Actually also simulating the opposite light
@@ -235,7 +321,11 @@ func (r *renderer3) samplePixel(pixel01 sdf.V2, job *pixelRender) color.RGBA {
 			B: uint8(math.Abs(normal.Z) * 255),
 			A: 255,
 		}
-	} // Otherwise, missed the surface (or run out of steps)
+	} else { // Otherwise, missed the surface (or run out of steps)
+		if len(r.depthBuffer) > 0 {
+			r.depthBuffer[depthBufferIndex] = math.MaxFloat64
+		}
+	}
 	if steps == r.rayMaxSteps {
 		// Reached the maximum amount of steps (should change parameters)
 		return r.errorColor

@@ -15,7 +15,7 @@ func BenchmarkDevRenderer3_Render(b *testing.B) {
 	s3, _ := sdf.ExtrudeRounded3D(s, 4, 1)
 	impl := newDevRenderer3(s3)
 	b.ReportAllocs()
-	state := RendererState{
+	state := internal.RendererState{
 		ResInv: 8,
 		Bb:     s.BoundingBox(),
 	}

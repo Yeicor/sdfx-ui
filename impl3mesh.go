@@ -57,6 +57,44 @@ func (rm *renderer3mesh) ColorModes() int {
 }
 
 func (rm *renderer3mesh) Render(r *renderer3, args *internal.RenderArgs) error {
+	camFauxglMatrix, camPos := rm.reset(r, args)
+
+	// Configure the shader (based on ColorMode)
+	if args.State.ColorMode == 0 {
+		// use builtin phong shader
+		shader := fauxgl.NewPhongShader(camFauxglMatrix, r3mToFauxglVector(r.lightDir), r3mToFauxglVector(camPos))
+		shader.ObjectColor = fauxgl.MakeColor(r.surfaceColor)
+		rm.lastContext.Shader = shader
+		rm.lastContext.Wireframe = false
+	} else {
+		// use normal based shader
+		rm.lastContext.Shader = &r3mNormalShader{camFauxglMatrix}
+		rm.lastContext.Wireframe = args.State.ColorMode == 2 // set to wireframe mode
+	}
+	// Perform the actual render
+	rm.lastContext.DrawMesh(rm.mesh) // This is already multithread, no need to parallelize anymore
+	img := rm.lastContext.Image()
+
+	// Copy output full render (no partial renders supported)
+	args.CachedRenderLock.Lock()
+	copy(args.FullRender.Pix[args.FullRender.PixOffset(0, 0):], img.(*image.NRGBA).Pix[img.(*image.NRGBA).PixOffset(0, 0):])
+	args.CachedRenderLock.Unlock()
+
+	if args.State.DrawBbs {
+		// Draw bounding boxes over the image
+		depthBufferClone := make([]float64, len(rm.lastContext.DepthBuffer))
+		copy(depthBufferClone, rm.lastContext.DepthBuffer)
+		r.renderBbs(args, depthBufferClone)
+	}
+
+	if args.PartialRenders != nil {
+		close(args.PartialRenders)
+	}
+
+	return nil
+}
+
+func (rm *renderer3mesh) reset(r *renderer3, args *internal.RenderArgs) (fauxgl.Matrix, sdf.V3) {
 	args.StateLock.Lock()
 	bounds := args.FullRender.Bounds()
 	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
@@ -92,35 +130,26 @@ func (rm *renderer3mesh) Render(r *renderer3, args *internal.RenderArgs) error {
 	//args.state.CamCenter.X = -args.state.CamCenter.X
 	//args.state.CamCenter.Y = -args.state.CamCenter.Y
 	args.StateLock.Unlock()
+	return camFauxglMatrix, camPos
+}
 
-	// Configure the shader (based on ColorMode)
-	if args.State.ColorMode == 0 {
-		// use builtin phong shader
-		shader := fauxgl.NewPhongShader(camFauxglMatrix, r3mToFauxglVector(r.lightDir), r3mToFauxglVector(camPos))
-		shader.ObjectColor = fauxgl.MakeColor(r.surfaceColor)
-		rm.lastContext.Shader = shader
-		rm.lastContext.Wireframe = false
-	} else {
-		// use normal based shader
-		rm.lastContext.Shader = &r3mNormalShader{camFauxglMatrix}
-		rm.lastContext.Wireframe = args.State.ColorMode == 2 // set to wireframe mode
-	}
-	// Perform the actual render
-	rm.lastContext.DrawMesh(rm.mesh) // This is already multithread, no need to parallelize anymore
-	img := rm.lastContext.Image()
+func (rm *renderer3mesh) depthBuffer() []float64 {
+	return rm.lastContext.DepthBuffer
+}
 
-	// Copy output full render (no partial renders supported)
-	args.CachedRenderLock.Lock()
-	copy(args.FullRender.Pix[args.FullRender.PixOffset(0, 0):], img.(*image.NRGBA).Pix[img.(*image.NRGBA).PixOffset(0, 0):])
-	args.CachedRenderLock.Unlock()
+func (rm *renderer3mesh) renderBoundingBox(bb sdf.Box3, camFauxglMatrix fauxgl.Matrix, color color.Color) *image.NRGBA {
+	mesh := fauxgl.NewCubeOutlineForBox(fauxgl.Box{
+		Min: fauxgl.Vector{X: bb.Min.X, Y: bb.Min.Y, Z: -bb.Min.Z}, // FIXME: Swap back Z when camera is fixed
+		Max: fauxgl.Vector{X: bb.Max.X, Y: bb.Max.Y, Z: -bb.Max.Z},
+	})
 
-	// TODO: Draw bounding boxes over the image
+	// Render the cube as a wireframe
+	shader := fauxgl.NewSolidColorShader(camFauxglMatrix, fauxgl.MakeColor(color))
+	rm.lastContext.Shader = shader
+	rm.lastContext.Wireframe = true
+	rm.lastContext.DrawMesh(mesh)
 
-	if args.PartialRenders != nil {
-		close(args.PartialRenders)
-	}
-
-	return nil
+	return rm.lastContext.Image().(*image.NRGBA)
 }
 
 func r3mConvertTriangle(tri *render.Triangle3) *fauxgl.Triangle {
