@@ -18,8 +18,9 @@ jobs:
       with:
         go-version: 1.17
 
-    - name: Build
-      run: go mod tidy -v -compat=1.17 && go build -v ./...
+    # Can't build as there is no opengl installation on CI
+    # - name: Build
+    #   run: go mod tidy -v -compat=1.17 && go build -v ./...
 
     - name: Test
       run: go mod tidy -v -compat=1.17 && go test -v ./...
