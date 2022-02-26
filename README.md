@@ -2,6 +2,7 @@
 
 ![GitHub go.mod Go version of a Go module](https://img.shields.io/github/go-mod/go-version/Yeicor/sdfx-ui.svg)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Yeicor/sdfx-ui.svg)](https://pkg.go.dev/github.com/Yeicor/sdfx-ui)
+[![Go](https://github.com/Yeicor/sdfx-ui/actions/workflows/go.yml/badge.svg)](https://github.com/Yeicor/sdfx-ui/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Yeicor/sdfx-ui)](https://goreportcard.com/report/github.com/Yeicor/sdfx-ui)
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://mit-license.org/)
 
@@ -10,7 +11,10 @@ integrates with your code as a library, meaning that you define your surface and
 UI.
 
 The UI will listen for code updates (you can use your preferred code editor) and displays the new surfaces automatically
-with the same configuration (e.g., camera position).
+with the same state (e.g., camera position).
+
+Pull requests are welcome! The priority is to improve the user experience (making a proper UI or adding new capabilities)
+without losing performance.
 
 ## Demo
 
@@ -61,12 +65,15 @@ SDFX-UI uses [Ebiten](https://github.com/hajimehoshi/ebiten) for window manageme
 cross-platform, so it could also be used to showcase a surface (without automatic updates) creating an application for
 desktop, web, mobile or Nintendo Switch™.
 
-### Browser and mobile demos
+### Browser and mobile
 
 They use the same code as the demo, see compilation instructions at examples/spiral/main.go.
 
 ![Screenshot_20220107_234547](docs/demo_browser.png)
 ![Screenshot_20220107-234815220](docs/demo_android.jpg)
 
-Note that mobile only works with mouse and keyboard for now (happy to receive pull requests, as Ebiten already supports
-touch input).
+Note that mobile only works with mouse and keyboard for now.
+
+### Other demos
+
+![Screenshot_20220226_205856](https://user-images.githubusercontent.com/4929005/155857780-89552844-6021-4cfb-aff7-9ce53461c34f.png)
