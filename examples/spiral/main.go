@@ -1,3 +1,12 @@
+//-----------------------------------------------------------------------------
+/*
+
+SOURCE: https://github.com/deadsy/sdfx/blob/master/examples/spiral/main.go
+
+Spirals
+
+*/
+//-----------------------------------------------------------------------------
 package main
 
 import (
@@ -39,11 +48,11 @@ func spiralSdf() (s interface{}, err error) {
 	//s = sdf.Difference2D(s.(sdf.SDF2), t)
 
 	//s = sdf.Extrude3D(s.(sdf.SDF2), 4)
-	s, _ = sdf.ExtrudeRounded3D(s.(sdf.SDF2), 4, 0.25)
+	//s, _ = sdf.ExtrudeRounded3D(s.(sdf.SDF2), 4, 0.25)
 	//s, _ = sdf.RevolveTheta3D(s.(sdf.SDF2), math.Pi/2)
 
-	//box3, _ := sdf.Box3D(sdf.V3{X: 20, Y: 10, Z: 5}, 0.2)
-	//box3 = sdf.Transform3D(box3, sdf.Translate3d(sdf.V3{Z: 15}))
+	//box3, _ := sdf.Box3D(sdf.V3{X: 40, Y: 10, Z: 15}, 0.2)
+	//box3 = sdf.Transform3D(box3, sdf.Translate3d(sdf.V3{Y: 30, Z: -5}))
 	//s = sdf.Union3D(s.(sdf.SDF3), box3)
 
 	return s, err
@@ -83,7 +92,7 @@ func main() {
 	// Actual rendering loop
 	err = ui.NewRenderer(s,
 		ui.OptMWatchFiles([]string{"main.go"}), // Default of "." also works, but it triggers too often if generating a profile
-		//ui.Opt3Mesh(&render.MarchingCubesUniform{}, 200, math.Pi/3),
+		//ui.Opt3Mesh(&render.MarchingCubesUniform{}, 100, math.Pi/3),
 	).Run()
 	if err != nil {
 		panic(err)

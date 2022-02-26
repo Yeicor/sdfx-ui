@@ -13,7 +13,7 @@ func BenchmarkDevRenderer2_Render(b *testing.B) {
 	s, _ := sdf.ArcSpiral2D(1.0, 20.0, 0.25*sdf.Pi, 8*sdf.Tau, 1.0)
 	impl := newDevRenderer2(s)
 	b.ReportAllocs()
-	state := RendererState{
+	state := internal.RendererState{
 		ResInv: 8,
 		Bb:     s.BoundingBox(),
 	}

@@ -23,6 +23,7 @@ type RendererService struct {
 	stateLock, cachedRenderLock *sync.RWMutex
 	renders                     chan *RemoteRenderResults
 	done                        chan os.Signal
+	reflectTree                 *ReflectTree
 }
 
 // NewDevRendererService see RendererService
@@ -52,6 +53,13 @@ func (d *RendererService) Dimensions(_ int, out *int) error {
 // BoundingBox is an internal method that has to be exported for RPC.
 func (d *RendererService) BoundingBox(_ sdf.Box3, out *sdf.Box3) error {
 	*out = d.impl.BoundingBox()
+	return nil
+}
+
+// ReflectTree is an internal method that has to be exported for RPC.
+func (d *RendererService) ReflectTree(_ sdf.Box3, out *ReflectTree) error {
+	out = d.impl.ReflectTree()
+	d.reflectTree = out
 	return nil
 }
 
@@ -98,6 +106,10 @@ loop: // Wait for previous renders to be properly completed/cancelled before con
 	d.cachedRenderLock.Lock()
 	d.renderCtx = newCtx
 	d.renders = make(chan *RemoteRenderResults)
+	if d.reflectTree == nil {
+		_ = d.ReflectTree(sdf.Box3{}, d.reflectTree)
+	}
+	args.State.ReflectTree = d.reflectTree // HACK: Avoid sending the reflection-based tree over the network (use local cached version)
 	d.cachedRenderLock.Unlock()
 	partialRenders := make(chan *image.RGBA)
 	partialRendersFinish := make(chan struct{})
