@@ -19,11 +19,13 @@ jobs:
         go-version: 1.17
 
     - name: Install Ebiten dependencies
-      run: sudo apt-get update && sudo apt-get install -y libx11-dev libgl1-mesa-dev libasound2-dev libgles2-mesa-dev libalut-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev
+      run: sudo apt-get update && sudo apt-get install -y libx11-dev libgl1-mesa-dev libasound2-dev libgles2-mesa-dev libalut-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxxf86vm-dev xvfb
 
-    # Can't build as there is no opengl installation on CI
-    # - name: Build
-    #   run: go mod tidy -v -compat=1.17 && go build -v ./...
+    - name: Build
+      run: go mod tidy -v -compat=1.17 && go build -v ./...
 
+    - name: Start fake display for testing
+      run: export DISPLAY=:99.0 && sh -e /etc/init.d/xvfb start
+      
     - name: Go test
       run: go test -v ./...
