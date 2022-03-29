@@ -67,3 +67,11 @@ func OptMColorMode(colorMode int) Option {
 		r.implState.ColorMode = colorMode % r.impl.ColorModes()
 	}
 }
+
+// OptMSmoothCamera renders camera frames while dragging the mouse if enabled (2D/3D). Disabled by default.
+// WARNING: Need to run again the main renderer to apply a change of this option.
+func OptMSmoothCamera(smoothCamera bool) Option {
+	return func(r *Renderer) {
+		r.smoothCamera = smoothCamera
+	}
+}

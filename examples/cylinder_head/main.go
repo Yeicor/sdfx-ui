@@ -410,6 +410,7 @@ func main() {
 	err := ui.NewRenderer(s,
 		ui.OptMWatchFiles([]string{"main.go"}), // Default of "." also works, but it triggers too often if generating a profile
 		ui.Opt3Mesh(&render.MarchingCubesUniform{}, 100, math.Pi/3),
+		ui.OptMSmoothCamera(true),
 	).Run()
 	if err != nil {
 		panic(err)

@@ -47,7 +47,7 @@ func spiralSdf() (s interface{}, err error) {
 	//}
 	//s = sdf.Difference2D(s.(sdf.SDF2), t)
 
-	//s = sdf.Extrude3D(s.(sdf.SDF2), 4)
+	s = sdf.Extrude3D(s.(sdf.SDF2), 4)
 	//s, _ = sdf.ExtrudeRounded3D(s.(sdf.SDF2), 4, 0.25)
 	//s, _ = sdf.RevolveTheta3D(s.(sdf.SDF2), math.Pi/2)
 
@@ -93,6 +93,7 @@ func main() {
 	err = ui.NewRenderer(s,
 		ui.OptMWatchFiles([]string{"main.go"}), // Default of "." also works, but it triggers too often if generating a profile
 		//ui.Opt3Mesh(&render.MarchingCubesUniform{}, 100, math.Pi/3),
+		ui.OptMSmoothCamera(true),
 	).Run()
 	if err != nil {
 		panic(err)
