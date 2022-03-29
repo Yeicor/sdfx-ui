@@ -7,6 +7,7 @@ import (
 	"golang.org/x/image/font/inconsolata"
 	"image/color"
 	"math"
+	"runtime"
 )
 
 func utilSdf2MinMax(s sdf.SDF2, bb sdf.Box2, cells sdf.V2i) (dmin, dmax float64) {
@@ -27,9 +28,11 @@ func utilSdf2MinMax(s sdf.SDF2, bb sdf.Box2, cells sdf.V2i) (dmin, dmax float64)
 var defaultFont = inconsolata.Regular8x16 // Just a simple embedded font (to avoid problems with some platforms)
 
 func drawDefaultTextWithShadow(screen *ebiten.Image, msg string, x, y int, c color.Color) {
-	for dx := -1; dx <= 1; dx++ {
-		for dy := -1; dy <= 1; dy++ {
-			text.Draw(screen, msg, defaultFont, x+dx, y+dy, color.RGBA{R: 0, G: 0, B: 0, A: 50}) // Shadow first (background)
+	if runtime.GOOS != "js" { // Rendering text is slow on JS
+		for dx := -1; dx <= 1; dx++ {
+			for dy := -1; dy <= 1; dy++ {
+				text.Draw(screen, msg, defaultFont, x+dx, y+dy, color.RGBA{R: 0, G: 0, B: 0, A: 50}) // Shadow first (background)
+			}
 		}
 	}
 	text.Draw(screen, msg, defaultFont, x, y, c)

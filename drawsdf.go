@@ -21,12 +21,9 @@ func (r *Renderer) drawSDF(screen *ebiten.Image) {
 	defer r.cachedRenderLock.RUnlock()
 	drawOpts := &ebiten.DrawImageOptions{}
 	var tr sdf.V2
-	if r.translateFrom[0] < math.MaxInt { // SDF2 special case: preview translations without rendering (until mouse release)
-		cx, cy := ebiten.CursorPosition()
-		if tX, tY := ebiten.TouchPosition(0); tX != 0 && tY != 0 { // Override cursor with touch if available
-			cx, cy = tX, tY
-		}
-		if r.translateFromStop[0] < math.MaxInt {
+	if r.translateFrom[0] != math.MaxInt && !r.smoothCamera { // Preview translations without rendering (until mouse release)
+		cx, cy := getCursor()
+		if r.translateFromStop[0] != math.MaxInt {
 			cx, cy = r.translateFromStop[0], r.translateFromStop[1]
 		}
 		tr = sdf.V2i{cx, cy}.ToV2().Sub(r.translateFrom.ToV2()).DivScalar(float64(r.implState.ResInv))
@@ -51,9 +48,13 @@ func (r *Renderer) drawSDF(screen *ebiten.Image) {
 // rerender will discard any current rendering and start a new render (use it when something changes).
 // It does not lock execution (queues a new render in background).
 func (r *Renderer) rerender(callbacks ...func(err error)) {
+	r.rerenderOpt(true, callbacks...)
+}
+
+func (r *Renderer) rerenderOpt(forceCancel bool, callbacks ...func(err error)) {
 	r.cachedRenderLock.RLock()
 	if r.cachedRender == nil {
-		log.Println("Trying to render too soon (before first Update()). FIXME!")
+		log.Println("Trying to render too soon (before first Update())")
 		debug.PrintStack()
 	}
 	r.cachedRenderLock.RUnlock()
@@ -66,6 +67,9 @@ func (r *Renderer) rerender(callbacks ...func(err error)) {
 		}()
 		//lint:ignore SA1012 package API allows this
 		if !r.renderingLock.TryLock(nil) {
+			if !forceCancel {
+				return
+			}
 			r.implStateLock.RLock() // Avoid race condition with creating a new context
 			r.renderingCtxCancel()
 			r.implStateLock.RUnlock()
@@ -112,11 +116,23 @@ func (r *Renderer) rerender(callbacks ...func(err error)) {
 		if !sameSize {
 			r.cachedRenderCPU = image.NewRGBA(image.Rect(0, 0, renderSize[0], renderSize[1]))
 		}
+		implState := r.implState
+		if r.smoothCamera {
+			if r.translateFrom[0] != math.MaxInt {
+				cx, cy := getCursor()
+				switch r.implDimCache {
+				case 2:
+					implState = r.apply2DCameraMoveTo(cx, cy)
+				case 3:
+					implState = r.apply3DCameraMoveTo(cx, cy)
+				}
+			}
+		}
 		r.implStateLock.RUnlock()
 		r.implLock.RLock()
 		err = r.impl.Render(&internal.RenderArgs{
 			Ctx:              renderCtx,
-			State:            r.implState,
+			State:            implState,
 			StateLock:        r.implStateLock,
 			CachedRenderLock: r.cachedRenderLock,
 			PartialRenders:   partialRenders,

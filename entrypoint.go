@@ -58,6 +58,7 @@ type Renderer struct {
 	backOff            backoff.BackOff  // the backoff to connect to the new process after recompilation
 	partialRenderEvery time.Duration    // how much time to wait between partial render updates to screen
 	zoomFactor         float64          // how much to scale the SDF2/SDF3 on each zoom operation (> 1)
+	smoothCamera       bool             // whether to render while moving the camera (for 2D and 3D)
 }
 
 // NewRenderer see Renderer
