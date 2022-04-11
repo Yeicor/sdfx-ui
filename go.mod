@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/barkimedes/go-deepcopy v0.0.0-20200817023428-a044a1957ca4
-	github.com/cenkalti/backoff/v4 v4.1.2
+	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/deadsy/sdfx v0.0.0-20220211044058-15587d44f9eb
 	github.com/fogleman/fauxgl v0.0.0-20200818143847-27cddc103802
 	github.com/fsnotify/fsnotify v1.5.1
