@@ -7,7 +7,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/deadsy/sdfx v0.0.0-20220211044058-15587d44f9eb
 	github.com/fogleman/fauxgl v0.0.0-20200818143847-27cddc103802
-	github.com/fsnotify/fsnotify v1.5.1
+	github.com/fsnotify/fsnotify v1.5.3
 	github.com/hajimehoshi/ebiten v1.12.12
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/subchen/go-trylock/v2 v2.0.0
