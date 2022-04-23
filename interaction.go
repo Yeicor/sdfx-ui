@@ -36,7 +36,7 @@ func (r *Renderer) onUpdateInputs() {
 
 func (r *Renderer) onUpdateInputsCommon() {
 	// SHARED CONTROLS
-	if inpututil.IsKeyJustPressed(ebiten.KeyKPAdd) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKPAdd) || inpututil.IsKeyJustPressed(ebiten.KeyEqual) {
 		r.implStateLock.Lock()
 		r.implState.ResInv /= 2
 		if r.implState.ResInv < 1 {
@@ -45,7 +45,7 @@ func (r *Renderer) onUpdateInputsCommon() {
 		r.implStateLock.Unlock()
 		r.rerender()
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKPSubtract) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKPSubtract) || inpututil.IsKeyJustPressed(ebiten.KeyMinus) {
 		r.implStateLock.Lock()
 		r.implState.ResInv *= 2
 		if r.implState.ResInv > 64 {
