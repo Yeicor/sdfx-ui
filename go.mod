@@ -7,7 +7,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/deadsy/sdfx v0.0.0-20220211044058-15587d44f9eb
 	github.com/fogleman/fauxgl v0.0.0-20200818143847-27cddc103802
-	github.com/fsnotify/fsnotify v1.5.3
+	github.com/fsnotify/fsnotify v1.5.4
 	github.com/hajimehoshi/ebiten v1.12.12
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/subchen/go-trylock/v2 v2.0.0
@@ -23,6 +23,6 @@ require (
 	github.com/yofu/dxf v0.0.0-20190710012328-5a6d1e83f16c // indirect
 	golang.org/x/exp/shiny v0.0.0-20220212023102-3e31098684e2 // indirect
 	golang.org/x/mobile v0.0.0-20220112015953-858099ff7816 // indirect
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	golang.org/x/text v0.3.7 // indirect
 )
