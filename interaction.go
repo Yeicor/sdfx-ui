@@ -36,7 +36,7 @@ func (r *Renderer) onUpdateInputs() {
 
 func (r *Renderer) onUpdateInputsCommon() {
 	// SHARED CONTROLS
-	if inpututil.IsKeyJustPressed(ebiten.KeyKPAdd) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKPAdd) || inpututil.IsKeyJustPressed(ebiten.KeyEqual) {
 		r.implStateLock.Lock()
 		r.implState.ResInv /= 2
 		if r.implState.ResInv < 1 {
@@ -45,7 +45,7 @@ func (r *Renderer) onUpdateInputsCommon() {
 		r.implStateLock.Unlock()
 		r.rerender()
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKPSubtract) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKPSubtract) || inpututil.IsKeyJustPressed(ebiten.KeyMinus) {
 		r.implStateLock.Lock()
 		r.implState.ResInv *= 2
 		if r.implState.ResInv > 64 {
@@ -244,7 +244,7 @@ func (r *Renderer) drawUI(screen *ebiten.Image) {
 	// Draw current state and controls
 	r.implStateLock.RLock()
 	defer r.implStateLock.RUnlock()
-	msgFmt := "TPS: %0.2f/%d\nResolution: %.2f [+/-]\nColor: %d [C]\nBoxes: %t [B]\nReset camera [R]"
+	msgFmt := "TPS: %0.2f/%d\nResolution: %.2f [+ or = / -]\nColor: %d [C]\nBoxes: %t [B]\nReset camera [R]"
 	msgValues := []interface{}{ebiten.CurrentTPS(), ebiten.MaxTPS(), 1 / float64(r.implState.ResInv), r.implState.ColorMode, r.implState.DrawBbs}
 	switch r.implDimCache {
 	case 2:
