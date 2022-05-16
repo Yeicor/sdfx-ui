@@ -13,7 +13,8 @@ UI.
 The UI will listen for code updates (you can use your preferred code editor) and displays the new surfaces automatically
 with the same state (e.g., camera position).
 
-Pull requests are welcome! The priority is to improve the user experience (making a proper UI or adding new capabilities)
+Pull requests are welcome! The priority is to improve the user experience (making a proper UI or adding new
+capabilities)
 without losing performance.
 
 ## Demo
@@ -76,4 +77,11 @@ Note that mobile only works with mouse and keyboard for now.
 
 ### Other demos
 
+Show bounding boxes:
+
 ![Screenshot_20220226_205856](https://user-images.githubusercontent.com/4929005/155857780-89552844-6021-4cfb-aff7-9ce53461c34f.png)
+
+## Related projects
+
+- [sdf3ui](https://github.com/soypat/sdf3ui): browser based 3D model visualizer for use
+  with [a similar SDF library](https://github.com/soypat/sdf).
