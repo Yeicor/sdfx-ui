@@ -21,24 +21,24 @@ func (r *Renderer) drawSDF(screen *ebiten.Image) {
 	defer r.cachedRenderLock.RUnlock()
 	drawOpts := &ebiten.DrawImageOptions{}
 	var tr sdf.V2
-	if r.translateFrom[0] != math.MaxInt && !r.smoothCamera { // Preview translations without rendering (until mouse release)
+	if r.translateFrom.X != math.MaxInt && !r.smoothCamera { // Preview translations without rendering (until mouse release)
 		cx, cy := getCursor()
-		if r.translateFromStop[0] != math.MaxInt {
-			cx, cy = r.translateFromStop[0], r.translateFromStop[1]
+		if r.translateFromStop.X != math.MaxInt {
+			cx, cy = r.translateFromStop.X, r.translateFromStop.Y
 		}
-		tr = sdf.V2i{cx, cy}.ToV2().Sub(r.translateFrom.ToV2()).DivScalar(float64(r.implState.ResInv))
+		tr = sdf.V2{X: float64(cx), Y: float64(cy)}.Sub(sdf.V2{X: float64(r.translateFrom.X), Y: float64(r.translateFrom.Y)}).DivScalar(float64(r.implState.ResInv))
 		// TODO: Place SDF2 render at the right location during special renders (zooming, changing resolution)
 	}
 	drawOpts.GeoM.Translate(tr.X, tr.Y)
 	cachedRenderWidth, cachedRenderHeight := r.cachedRender.Size()
-	drawOpts.GeoM.Scale(float64(r.screenSize[0])/float64(cachedRenderWidth), float64(r.screenSize[1])/float64(cachedRenderHeight))
+	drawOpts.GeoM.Scale(float64(r.screenSize.X)/float64(cachedRenderWidth), float64(r.screenSize.Y)/float64(cachedRenderHeight))
 	err := screen.DrawImage(r.cachedRender, drawOpts)
 	if err != nil {
 		panic(err) // Can this happen?
 	}
 	drawOpts.GeoM.Reset()
 	cachedPartialRenderWidth, cachedPartialRenderHeight := r.cachedPartialRender.Size()
-	drawOpts.GeoM.Scale(float64(r.screenSize[0])/float64(cachedPartialRenderWidth), float64(r.screenSize[1])/float64(cachedPartialRenderHeight))
+	drawOpts.GeoM.Scale(float64(r.screenSize.X)/float64(cachedPartialRenderWidth), float64(r.screenSize.Y)/float64(cachedPartialRenderHeight))
 	err = screen.DrawImage(r.cachedPartialRender, drawOpts)
 	if err != nil {
 		panic(err) // Can this happen?
@@ -79,11 +79,11 @@ func (r *Renderer) rerenderOpt(forceCancel bool, callbacks ...func(err error)) {
 		var renderCtx context.Context
 		r.implStateLock.Lock()
 		renderCtx, r.renderingCtxCancel = context.WithCancel(context.Background())
-		renderSize := r.screenSize.ToV2().DivScalar(float64(r.implState.ResInv)).ToV2i()
+		renderSize := sdf.V2i{X: int(float64(r.screenSize.X) / float64(r.implState.ResInv)), Y: int(float64(r.screenSize.Y) / float64(r.implState.ResInv))}
 		r.implStateLock.Unlock()
 		partialRenders := make(chan *image.RGBA)
 		go func(renderSize sdf.V2i) {
-			partialRenderCopy := image.NewRGBA(image.Rect(0, 0, renderSize[0], renderSize[1]))
+			partialRenderCopy := image.NewRGBA(image.Rect(0, 0, renderSize.X, renderSize.Y))
 			lastPartialRender := time.Now()
 			for partialRender := range partialRenders {
 				if time.Since(lastPartialRender) < r.partialRenderEvery {
@@ -114,11 +114,11 @@ func (r *Renderer) rerenderOpt(forceCancel bool, callbacks ...func(err error)) {
 		r.implStateLock.RLock()
 		sameSize := r.cachedRenderCPU != nil && (sdf.V2i{r.cachedRenderCPU.Rect.Max.X, r.cachedRenderCPU.Rect.Max.Y} == renderSize)
 		if !sameSize {
-			r.cachedRenderCPU = image.NewRGBA(image.Rect(0, 0, renderSize[0], renderSize[1]))
+			r.cachedRenderCPU = image.NewRGBA(image.Rect(0, 0, renderSize.X, renderSize.Y))
 		}
 		implState := r.implState
 		if r.smoothCamera {
-			if r.translateFrom[0] != math.MaxInt {
+			if r.translateFrom.X != math.MaxInt {
 				cx, cy := getCursor()
 				switch r.implDimCache {
 				case 2:

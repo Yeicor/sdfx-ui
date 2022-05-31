@@ -171,7 +171,7 @@ func (r *renderer3) Render(args *internal.RenderArgs) error {
 	colorModeCopy := args.State.ColorMode
 	bounds := args.FullRender.Bounds()
 	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
-	//aspectRatio := float64(boundsSize[0]) / float64(boundsSize[1])
+	//aspectRatio := float64(boundsSize[0]) / float64(boundsSize.Y)
 	camViewMatrix := cam3MatrixNoTranslation(args.State)
 	camPos := args.State.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.State.CamDist}))
 	camDir := args.State.CamCenter.Sub(camPos).Normalize()
@@ -188,7 +188,7 @@ func (r *renderer3) Render(args *internal.RenderArgs) error {
 
 	if args.State.DrawBbs {
 		// Reset internal depth buffer
-		expectedLen := boundsSize[0] * boundsSize[1]
+		expectedLen := boundsSize.X * boundsSize.Y
 		if len(r.depthBuffer) != expectedLen {
 			r.depthBuffer = make([]float64, expectedLen)
 		}
@@ -241,7 +241,7 @@ func (r *renderer3) renderBbs(args *internal.RenderArgs, depthBuffer []float64) 
 	for i, bb := range args.State.ReflectTree.GetBoundingBoxes3() {
 		boxesRender = r.meshRenderer.renderBoundingBox(bb, camMatrix, r.getBBColor(i))
 	}
-	if boxesRender != nil {
+	if boxesRender != nil && len(depthBuffer) > 0 {
 		// Now merge both renders by depth!
 		size := args.FullRender.Bounds().Size()
 		boxesDepth := r.meshRenderer.depthBuffer()
@@ -282,14 +282,14 @@ type pixelRender struct {
 func (r *renderer3) samplePixel(pixel01 sdf.V2, job *pixelRender) color.RGBA {
 	depthBufferIndex := -1
 	if len(r.depthBuffer) > 0 {
-		depthBufferIndex = job.pixel[1]*job.bounds[0] + job.pixel[0]
+		depthBufferIndex = job.pixel.Y*job.bounds.X + job.pixel.X
 	}
 	// Generate the ray for this pixel using the given camera parameters
 	rayFrom := job.camPos
 	// Get pixel inside of ([-1, 1], [-1, 1])
 	rayDirXZBase := pixel01.MulScalar(2).SubScalar(1)
 	rayDirXZBase.Y = -rayDirXZBase.Y
-	rayDirXZBase.X *= float64(job.bounds[0]) / float64(job.bounds[1]) // Apply aspect ratio (again)
+	rayDirXZBase.X *= float64(job.bounds.X) / float64(job.bounds.Y) // Apply aspect ratio (again)
 	// Convert to the projection over a displacement of 1
 	rayDirXZBase = rayDirXZBase.Mul(sdf.V2{X: math.Tan(job.camHalfFov.X), Y: math.Tan(job.camHalfFov.Y)})
 	rayDir := sdf.V3{X: rayDirXZBase.X, Y: 1, Z: rayDirXZBase.Y} // Z is UP (and this default camera is X-right Y-up)
@@ -321,10 +321,9 @@ func (r *renderer3) samplePixel(pixel01 sdf.V2, job *pixelRender) color.RGBA {
 			B: uint8(math.Abs(normal.Z) * 255),
 			A: 255,
 		}
-	} else { // Otherwise, missed the surface (or run out of steps)
-		if len(r.depthBuffer) > 0 {
-			r.depthBuffer[depthBufferIndex] = math.MaxFloat64
-		}
+	} else // Otherwise, missed the surface (or run out of steps)
+	if len(r.depthBuffer) > 0 {
+		r.depthBuffer[depthBufferIndex] = math.MaxFloat64
 	}
 	if steps == r.rayMaxSteps {
 		// Reached the maximum amount of steps (should change parameters)

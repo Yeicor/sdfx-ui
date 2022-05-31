@@ -6,6 +6,7 @@ import (
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/conv"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/hajimehoshi/ebiten/text"
@@ -69,7 +70,7 @@ func (r *Renderer) onUpdateInputsCommon() {
 	}
 	if r.smoothCamera {
 		r.implStateLock.RLock()
-		if r.translateFrom[0] != math.MaxInt {
+		if r.translateFrom.X != math.MaxInt {
 			r.rerenderOpt(false) // Trigger mid-movement rerender
 		}
 		r.implStateLock.RUnlock()
@@ -92,8 +93,8 @@ func (r *Renderer) onUpdateInputsSDF2() {
 		// Save the cursor's position for previsualization and applying the final translation
 		cx, cy := getCursor()
 		r.implStateLock.Lock()
-		if r.translateFrom[0] == math.MaxInt { // Only if not already moving...
-			r.translateFrom = sdf.V2i{cx, cy}
+		if r.translateFrom.X == math.MaxInt { // Only if not already moving...
+			r.translateFrom = sdf.V2i{X: cx, Y: cy}
 		}
 		r.implStateLock.Unlock()
 	}
@@ -101,21 +102,21 @@ func (r *Renderer) onUpdateInputsSDF2() {
 		// Actually apply the translation and force a rerender
 		cx, cy := getCursor()
 		r.implStateLock.Lock()
-		if r.translateFrom[0] != math.MaxInt { // Only if already moving...
+		if r.translateFrom.X != math.MaxInt { // Only if already moving...
 			r.implState = r.apply2DCameraMoveTo(cx, cy)
 			// Keep displacement until rerender is complete (avoid jump) using callback below + extra variable set here
-			r.translateFromStop = sdf.V2i{cx, cy}
+			r.translateFromStop = sdf.V2i{X: cx, Y: cy}
 		}
 		if r.smoothCamera {
-			r.translateFrom = sdf.V2i{math.MaxInt, math.MaxInt}
+			r.translateFrom = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
 		}
 		r.implStateLock.Unlock()
 		r.rerender(func(err error) {
 			r.implStateLock.Lock()
 			if !r.smoothCamera {
-				r.translateFrom = sdf.V2i{math.MaxInt, math.MaxInt}
+				r.translateFrom = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
 			}
-			r.translateFromStop = sdf.V2i{math.MaxInt, math.MaxInt}
+			r.translateFromStop = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
 			r.implStateLock.Unlock()
 		})
 	}
@@ -131,8 +132,8 @@ func (r *Renderer) onUpdateInputsSDF2() {
 func (r *Renderer) apply2DCameraMoveTo(cx int, cy int) *internal.RendererState {
 	newVal := deepcopy.MustAnything(r.implState).(*internal.RendererState)
 	newVal.Bb = r.implState.Bb.Translate(
-		r.translateFrom.ToV2().Sub(sdf.V2i{cx, cy}.ToV2()).Mul(sdf.V2{X: 1, Y: -1}). // Invert Y
-												Div(r.screenSize.ToV2()).Mul(r.implState.Bb.Size()))
+		conv.V2iToV2(r.translateFrom).Sub(conv.V2iToV2(sdf.V2i{X: cx, Y: cy})).Mul(sdf.V2{X: 1, Y: -1}). // Invert Y
+															Div(conv.V2iToV2(r.screenSize)).Mul(r.implState.Bb.Size()))
 	return newVal
 }
 
@@ -171,8 +172,8 @@ func (r *Renderer) onUpdateInputsSDF3RotTrans() {
 		// Save the cursor's position for previsualization and applying the final translation
 		cx, cy := getCursor()
 		r.implStateLock.Lock()
-		if r.translateFrom[0] == math.MaxInt { // Only if not already moving...
-			r.translateFrom = sdf.V2i{cx, cy}
+		if r.translateFrom.X == math.MaxInt { // Only if not already moving...
+			r.translateFrom = sdf.V2i{X: cx, Y: cy}
 		}
 		r.implStateLock.Unlock()
 	}
@@ -180,21 +181,21 @@ func (r *Renderer) onUpdateInputsSDF3RotTrans() {
 		// Actually apply the translation and force a rerender
 		cx, cy := getCursor()
 		r.implStateLock.Lock()
-		if r.translateFrom[0] != math.MaxInt { // Only if already moving...
+		if r.translateFrom.X != math.MaxInt { // Only if already moving...
 			r.implState = r.apply3DCameraMoveTo(cx, cy)
 			// Keep displacement until rerender is complete (avoid jump) using callback below + extra variable set here
-			r.translateFromStop = sdf.V2i{cx, cy}
+			r.translateFromStop = sdf.V2i{X: cx, Y: cy}
 		}
 		if r.smoothCamera {
-			r.translateFrom = sdf.V2i{math.MaxInt, math.MaxInt}
+			r.translateFrom = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
 		}
 		r.implStateLock.Unlock()
 		r.rerender(func(err error) {
 			r.implStateLock.Lock()
 			if !r.smoothCamera {
-				r.translateFrom = sdf.V2i{math.MaxInt, math.MaxInt}
+				r.translateFrom = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
 			}
-			r.translateFromStop = sdf.V2i{math.MaxInt, math.MaxInt}
+			r.translateFromStop = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
 			r.implStateLock.Unlock()
 		})
 	}
@@ -202,7 +203,7 @@ func (r *Renderer) onUpdateInputsSDF3RotTrans() {
 
 func (r *Renderer) apply3DCameraMoveTo(cx int, cy int) *internal.RendererState {
 	newVal := deepcopy.MustAnything(r.implState).(*internal.RendererState)
-	delta := sdf.V2i{cx, cy}.ToV2().Sub(r.translateFrom.ToV2())
+	delta := conv.V2iToV2(sdf.V2i{X: cx, Y: cy}).Sub(conv.V2iToV2(r.translateFrom))
 	if ebiten.IsKeyPressed(ebiten.KeyShift) { // Translation
 		// Move on the plane perpendicular to the camera's direction
 		camViewMatrix := cam3MatrixNoTranslation(r.implState)
@@ -254,5 +255,5 @@ func (r *Renderer) drawUI(screen *ebiten.Image) {
 	}
 	msg := fmt.Sprintf(msgFmt, msgValues...)
 	boundString := text.BoundString(defaultFont, msg)
-	drawDefaultTextWithShadow(screen, msg, 5, r.screenSize[1]-boundString.Size().Y+10, color.RGBA{G: 255, A: 255})
+	drawDefaultTextWithShadow(screen, msg, 5, r.screenSize.Y-boundString.Size().Y+10, color.RGBA{G: 255, A: 255})
 }

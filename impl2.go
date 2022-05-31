@@ -79,7 +79,7 @@ func (r *renderer2) Dimensions() int {
 
 func (r *renderer2) BoundingBox() sdf.Box3 {
 	bb := r.s.BoundingBox()
-	return sdf.Box3{Min: bb.Min.ToV3(0), Max: bb.Max.ToV3(0)}
+	return sdf.Box3{Min: sdf.V3{X: bb.Min.X, Y: bb.Max.Y, Z: 0.}, Max: sdf.V3{X: bb.Max.X, Y: bb.Max.Y, Z: 0.}}
 }
 
 func (r *renderer2) ReflectTree() *internal.ReflectTree {

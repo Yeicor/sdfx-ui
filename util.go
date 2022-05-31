@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/conv"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/text"
 	"golang.org/x/image/font/inconsolata"
@@ -11,9 +12,9 @@ import (
 )
 
 func utilSdf2MinMax(s sdf.SDF2, bb sdf.Box2, cells sdf.V2i) (dmin, dmax float64) {
-	cellSize := bb.Size().Div(cells.ToV2())
-	for x := 0; x < cells[0]; x++ {
-		for y := 0; y < cells[1]; y++ {
+	cellSize := bb.Size().Div(conv.V2iToV2(cells))
+	for x := 0; x < cells.X; x++ {
+		for y := 0; y < cells.Y; y++ {
 			// TODO: Reverse raycast (without limiting to a single direction) to find extreme values instead of 0s
 			//  (should lower sample count for same results)
 			pos := bb.Min.Add((sdf.V2{X: float64(x), Y: float64(y)}).Mul(cellSize))

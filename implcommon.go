@@ -34,7 +34,7 @@ func implCommonRender(genJob func(pixel sdf.V2i, pixel01 sdf.V2) interface{},
 	// Update random pixels if needed
 	bounds := args.FullRender.Bounds()
 	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
-	pixelCount := boundsSize[0] * boundsSize[1]
+	pixelCount := boundsSize.X * boundsSize.Y
 	if pixelCount != len(*pixelsRand) {
 		// Random seed shouldn't matter, just make pixel coloring seem random for partial renders
 		*pixelsRand = rand.Perm(pixelCount)
@@ -68,8 +68,8 @@ func implCommonRender(genJob func(pixel sdf.V2i, pixel01 sdf.V2) interface{},
 	loop: // Sample each pixel on the image separately (and in random order to see the image faster)
 		for _, randPixelIndex := range *pixelsRand {
 			// Sample a random pixel in the image
-			sampledPixel := sdf.V2i{randPixelIndex % boundsSize[0], randPixelIndex / boundsSize[0]}
-			sampledPixel01 := sampledPixel.ToV2().Div(boundsSize.ToV2())
+			sampledPixel := sdf.V2i{X: randPixelIndex % boundsSize.X, Y: randPixelIndex / boundsSize.X}
+			sampledPixel01 := sdf.V2{X: float64(sampledPixel.X) / float64(boundsSize.X), Y: float64(sampledPixel.Y) / float64(boundsSize.Y)}
 			// Queue the job for parallel processing
 			select {
 			case <-args.Ctx.Done():
@@ -91,7 +91,7 @@ func implCommonRender(genJob func(pixel sdf.V2i, pixel01 sdf.V2) interface{},
 	var err error
 pixelLoop:
 	for renderedPixel := range jobResults {
-		args.FullRender.SetRGBA(renderedPixel.pixel[0], renderedPixel.pixel[1], renderedPixel.color)
+		args.FullRender.SetRGBA(renderedPixel.pixel.X, renderedPixel.pixel.Y, renderedPixel.color)
 		pixelNum++
 		if pixelNum%pixelBatch == 0 {
 			args.CachedRenderLock.Unlock()

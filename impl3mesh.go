@@ -98,9 +98,9 @@ func (rm *renderer3mesh) reset(r *renderer3, args *internal.RenderArgs) (fauxgl.
 	args.StateLock.Lock()
 	bounds := args.FullRender.Bounds()
 	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
-	if rm.lastContext == nil || rm.lastContext.Width != boundsSize[0] || rm.lastContext.Height != boundsSize[1] {
+	if rm.lastContext == nil || rm.lastContext.Width != boundsSize.X || rm.lastContext.Height != boundsSize.Y {
 		// Rebuild rendering context only when needed
-		rm.lastContext = fauxgl.NewContext(boundsSize[0], boundsSize[1])
+		rm.lastContext = fauxgl.NewContext(boundsSize.X, boundsSize.Y)
 	} else {
 		rm.lastContext.ClearDepthBuffer()
 	}
@@ -110,7 +110,7 @@ func (rm *renderer3mesh) reset(r *renderer3, args *internal.RenderArgs) (fauxgl.
 	//args.state.CamYaw += math.Pi // HACK
 	//args.state.CamCenter.X = -args.state.CamCenter.X
 	//args.state.CamCenter.Y = -args.state.CamCenter.Y
-	aspectRatio := float64(boundsSize[0]) / float64(boundsSize[1])
+	aspectRatio := float64(boundsSize.X) / float64(boundsSize.Y)
 	camViewMatrix := cam3MatrixNoTranslation(args.State)
 	camPos := args.State.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.State.CamDist / 1.12 /* Adjust to other implementation*/}))
 	camDir := args.State.CamCenter.Sub(camPos).Normalize()

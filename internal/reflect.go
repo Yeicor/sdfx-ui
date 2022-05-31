@@ -20,11 +20,13 @@ func NewReflectionSDF(sdf interface{}) *ReflectionSDF {
 	return &ReflectionSDF{sdf: sdf}
 }
 
+// ReflectTree is internal: do not use outside this project
 type ReflectTree struct {
 	Info     *SDFNodeMeta
 	Children []*ReflectTree
 }
 
+// GetReflectTree is internal: do not use outside this project
 func (r *ReflectionSDF) GetReflectTree(targetTypes ...reflect.Type) *ReflectTree {
 	return r.getReflectTree(r.sdf, targetTypes...)
 }
@@ -55,6 +57,7 @@ func (r *ReflectionSDF) getReflectTree(rootSdf interface{}, targetSdfTypes ...re
 	return res
 }
 
+// SDFNodeMeta is internal: do not use outside this project
 type SDFNodeMeta struct {
 	ID    int      // An unique ID for this node (unique for the current tree)
 	Level int      // The fake level (it is not consistent across different branches)
@@ -68,12 +71,14 @@ func init() {
 	gob.Register(sdf.Box3{})
 }
 
+// GobEncode is internal: do not use outside this project
 func (s *SDFNodeMeta) GobEncode() ([]byte, error) {
 	buf := &bytes.Buffer{}
 	err := gob.NewEncoder(buf).Encode([]interface{}{s.ID, s.Level, s.Bb})
 	return buf.Bytes(), err
 }
 
+// GobDecode is internal: do not use outside this project
 func (s *SDFNodeMeta) GobDecode(bs []byte) error {
 	var tmp []interface{}
 	err := gob.NewDecoder(bytes.NewReader(bs)).Decode(&tmp)
@@ -148,7 +153,8 @@ func (i *treeSDFWalkerFunc) handleSDF(value reflect.Value, s interface{}) error 
 	var bb sdf.Box3
 	switch tmp := s.(type) {
 	case sdf.SDF2:
-		bb = sdf.Box3{Min: tmp.BoundingBox().Min.ToV3(-1e-3), Max: tmp.BoundingBox().Max.ToV3(1e-3)}
+		toV3 := func(v2 sdf.V2, z float64) sdf.V3 { return sdf.V3{X: v2.X, Y: v2.Y, Z: z} }
+		bb = sdf.Box3{Min: toV3(tmp.BoundingBox().Min, -1e-3), Max: toV3(tmp.BoundingBox().Max, 1e-3)}
 	case sdf.SDF3:
 		bb = tmp.BoundingBox()
 	}

@@ -131,7 +131,7 @@ loop: // Wait for previous renders to be properly completed/cancelled before con
 		close(partialRendersFinish)
 	}()
 	go func() { // spawn the blocking render in a different goroutine
-		fullRender := image.NewRGBA(image.Rect(0, 0, args.RenderSize[0], args.RenderSize[1]))
+		fullRender := image.NewRGBA(image.Rect(0, 0, args.RenderSize.X, args.RenderSize.Y))
 		err := d.impl.Render(&RenderArgs{
 			Ctx:              d.renderCtx,
 			State:            args.State,

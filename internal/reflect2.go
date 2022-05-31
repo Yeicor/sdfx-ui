@@ -7,10 +7,12 @@ import (
 
 var sdf2Type = reflect.TypeOf((*sdf.SDF2)(nil)).Elem()
 
+// GetReflectSDFTree2 is internal: do not use outside this project
 func (r *ReflectionSDF) GetReflectSDFTree2() *ReflectTree {
 	return r.GetReflectTree(sdf2Type)
 }
 
+// GetBoundingBoxes2 is internal: do not use outside this project
 func (r *ReflectTree) GetBoundingBoxes2() []sdf.Box2 {
 	return r.getBoundingBoxes2(r)
 }

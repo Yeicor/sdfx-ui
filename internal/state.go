@@ -38,6 +38,7 @@ type RendererState struct {
 	CamYaw, CamPitch, CamDist float64 // Arc-Ball rotation angles (around CamCenter) and distance from CamCenter
 }
 
+// RenderArgs is internal: do not use outside this project
 type RenderArgs struct {
 	Ctx                         context.Context
 	State                       *RendererState

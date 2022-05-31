@@ -7,12 +7,14 @@ import (
 
 var sdf3Type = reflect.TypeOf((*sdf.SDF3)(nil)).Elem()
 
+// GetReflectSDFTree3 is internal: do not use outside this project
 func (r *ReflectionSDF) GetReflectSDFTree3() *ReflectTree {
 	// NOTE: The SDF3 hierarchy may also contain SDF2 (most likely for initial 2D design that is later extruded)
 	// TODO: Include SDF2 boxes? Works, but results in ugly renderings
 	return r.GetReflectTree( /*sdf2Type, */ sdf3Type)
 }
 
+// GetBoundingBoxes3 is internal: do not use outside this project
 func (r *ReflectTree) GetBoundingBoxes3() []sdf.Box3 {
 	return r.getBoundingBoxes3(r)
 }
@@ -24,7 +26,7 @@ func (r *ReflectTree) getBoundingBoxes3(tree *ReflectTree) []sdf.Box3 {
 	skipParent := false
 	// HACK: Stop condition (apart from finishing the tree): to make results cleaner
 	skipChildren := false
-	if !tree.Info.Value.IsNil() {
+	if tree.Info.Value.Kind() != reflect.Invalid && !tree.Info.Value.IsNil() {
 		tpName := tree.Info.Value.Type().String()
 		switch tpName {
 		case "*ui.swapYZ":
