@@ -14,6 +14,7 @@ package main
 
 import (
 	ui "github.com/Yeicor/sdfx-ui"
+	"github.com/deadsy/sdfx/render"
 	"github.com/deadsy/sdfx/sdf"
 	"github.com/hajimehoshi/ebiten"
 	"math"
@@ -390,7 +391,7 @@ func main() {
 	// Actual rendering loop
 	err := ui.NewRenderer(s,
 		ui.OptMWatchFiles([]string{"main.go"}), // Default of "." also works, but it triggers too often if generating a profile
-		//ui.Opt3Mesh(&render.MarchingCubesUniform{}, 100, math.Pi/3),
+		ui.Opt3Mesh(&render.MarchingCubesUniform{}, 100, math.Pi/3),
 		ui.OptMSmoothCamera(true),
 	).Run()
 	if err != nil {

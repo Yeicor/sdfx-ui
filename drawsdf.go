@@ -82,34 +82,7 @@ func (r *Renderer) rerenderOpt(forceCancel bool, callbacks ...func(err error)) {
 		renderSize := sdf.V2i{X: int(float64(r.screenSize.X) / float64(r.implState.ResInv)), Y: int(float64(r.screenSize.Y) / float64(r.implState.ResInv))}
 		r.implStateLock.Unlock()
 		partialRenders := make(chan *image.RGBA)
-		go func(renderSize sdf.V2i) {
-			partialRenderCopy := image.NewRGBA(image.Rect(0, 0, renderSize.X, renderSize.Y))
-			lastPartialRender := time.Now()
-			for partialRender := range partialRenders {
-				if time.Since(lastPartialRender) < r.partialRenderEvery {
-					continue // Skip this partial render (throttled) as it slows down significantly the full render
-				}
-				lastPartialRender = time.Now()
-				r.cachedRenderLock.RLock()
-				copy(partialRenderCopy.Pix, partialRender.Pix)
-				r.cachedRenderLock.RUnlock()
-				// WARNING: This blocks the main rendering thread: call sparingly
-				gpuImg, err := ebiten.NewImageFromImage(partialRenderCopy, ebiten.FilterDefault)
-				if err != nil {
-					log.Println("Error sending image to GPU:", err)
-					continue
-				}
-				r.cachedRenderLock.Lock()
-				r.cachedPartialRender = gpuImg
-				r.cachedRenderLock.Unlock()
-			}
-			r.cachedRenderLock.Lock() // Use the cached render as the partial one (to make sure it is complete)
-			err := r.cachedPartialRender.Fill(color.Transparent)
-			if err != nil {
-				log.Println("cachedPartialRender.Fill(color.Transparent) error:", err)
-			}
-			r.cachedRenderLock.Unlock()
-		}(renderSize)
+		r.goPartialRendersHandler(partialRenders, renderSize)
 		renderStartTime := time.Now()
 		r.implStateLock.RLock()
 		sameSize := r.cachedRenderCPU != nil && (sdf.V2i{r.cachedRenderCPU.Rect.Max.X, r.cachedRenderCPU.Rect.Max.Y} == renderSize)
@@ -168,4 +141,35 @@ func (r *Renderer) rerenderOpt(forceCancel bool, callbacks ...func(err error)) {
 		// TODO: reuse the previous render for the parts that did not change (SDF2 only)
 		r.cachedRenderLock.Unlock()
 	}(callbacks...)
+}
+
+func (r *Renderer) goPartialRendersHandler(partialRenders chan *image.RGBA, renderSize sdf.V2i) {
+	go func(renderSize sdf.V2i) {
+		partialRenderCopy := image.NewRGBA(image.Rect(0, 0, renderSize.X, renderSize.Y))
+		lastPartialRender := time.Now()
+		for partialRender := range partialRenders {
+			if time.Since(lastPartialRender) < r.partialRenderEvery {
+				continue // Skip this partial render (throttled) as it slows down significantly the full render
+			}
+			lastPartialRender = time.Now()
+			r.cachedRenderLock.RLock()
+			copy(partialRenderCopy.Pix, partialRender.Pix)
+			r.cachedRenderLock.RUnlock()
+			// WARNING: This blocks the main rendering thread: call sparingly
+			gpuImg, err := ebiten.NewImageFromImage(partialRenderCopy, ebiten.FilterDefault)
+			if err != nil {
+				log.Println("Error sending image to GPU:", err)
+				continue
+			}
+			r.cachedRenderLock.Lock()
+			r.cachedPartialRender = gpuImg
+			r.cachedRenderLock.Unlock()
+		}
+		r.cachedRenderLock.Lock() // Use the cached render as the partial one (to make sure it is complete)
+		err := r.cachedPartialRender.Fill(color.Transparent)
+		if err != nil {
+			log.Println("cachedPartialRender.Fill(color.Transparent) error:", err)
+		}
+		r.cachedRenderLock.Unlock()
+	}(renderSize)
 }
