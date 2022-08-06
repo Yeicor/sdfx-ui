@@ -6,7 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/Yeicor/sdfx-ui)](https://goreportcard.com/report/github.com/Yeicor/sdfx-ui)
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://mit-license.org/)
 
-> :warning: **This project is superseeded by the [SDF Viewer](https://github.com/Yeicor/sdf-viewer) App with the [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go) integration. The advantages of the new project are mainly the real time rendering speed (GPU-accelerated), flexibility (easy to integrate with other languages and libraries), and even more features (parameter customization, custom procedural textures...).**
+> :warning: **This project is superseded by the [SDF Viewer](https://github.com/Yeicor/sdf-viewer) App with the [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go) integration. The advantages of the new project are mainly the real-time rendering speed (GPU-accelerated), flexibility (easy to integrate with other languages and libraries), and even more features (parameter customization, custom procedural textures...).**
 
 SDFX-UI is a SDF (2D and 3D) renderer intended for fast development iterations that renders directly to a window. It
 integrates with your code as a library, meaning that you define your surface and then call the method that starts this
