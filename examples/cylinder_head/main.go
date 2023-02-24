@@ -16,6 +16,8 @@ import (
 	ui "github.com/Yeicor/sdfx-ui"
 	"github.com/deadsy/sdfx/render"
 	"github.com/deadsy/sdfx/sdf"
+	v2 "github.com/deadsy/sdfx/vec/v2"
+	v3 "github.com/deadsy/sdfx/vec/v3"
 	"github.com/hajimehoshi/ebiten"
 	"math"
 )
@@ -68,7 +70,7 @@ func exhaustBoss(mode string, xOfs float64) sdf.SDF3 {
 	s1 := sdf.Extrude3D(s0, ebHeight)
 	m := sdf.RotateZ(sdf.DtoR(90))
 	m = sdf.RotateY(sdf.DtoR(90)).Mul(m)
-	m = sdf.Translate3d(sdf.V3{X: xOfs, Y: ebYOffset, Z: ebZOffset}).Mul(m)
+	m = sdf.Translate3d(v3.Vec{X: xOfs, Y: ebYOffset, Z: ebZOffset}).Mul(m)
 	s1 = sdf.Transform3D(s1, m)
 	return s1
 }
@@ -102,7 +104,7 @@ var spYOfs = spHyp*math.Cos(spTheta) - headWidth/2
 var spZOfs = -spHyp * math.Sin(spTheta)
 
 func sparkplug(mode string, xOfs float64) sdf.SDF3 {
-	var vlist []sdf.V2
+	var vlist []v2.Vec
 	if mode == "boss" {
 		boss := sdf.NewPolygon()
 		boss.Add(0, 0)
@@ -113,7 +115,7 @@ func sparkplug(mode string, xOfs float64) sdf.SDF3 {
 		boss.Add(0, spBossH3)
 		vlist = boss.Vertices()
 	} else if mode == "hole" {
-		vlist = []sdf.V2{
+		vlist = []v2.Vec{
 			{0, 0},
 			{spHoleR, 0},
 			{spHoleR, spHoleH},
@@ -132,7 +134,7 @@ func sparkplug(mode string, xOfs float64) sdf.SDF3 {
 	s0, _ := sdf.Polygon2D(vlist)
 	s, _ := sdf.Revolve3D(s0)
 	m := sdf.RotateX(sdf.Pi/2 - spTheta)
-	m = sdf.Translate3d(sdf.V3{X: xOfs, Y: spYOfs, Z: spZOfs}).Mul(m)
+	m = sdf.Translate3d(v3.Vec{X: xOfs, Y: spYOfs, Z: spZOfs}).Mul(m)
 	s = sdf.Transform3D(s, m)
 	return s
 }
@@ -169,14 +171,14 @@ func valve(d float64, mode string) sdf.SDF3 {
 	}
 
 	zOfs := cylinderHeight / 2
-	return sdf.Transform3D(s, sdf.Translate3d(sdf.V3{X: d, Y: valveYOffset, Z: zOfs}))
+	return sdf.Transform3D(s, sdf.Translate3d(v3.Vec{X: d, Y: valveYOffset, Z: zOfs}))
 }
 
 func valveSet(d float64, mode string) sdf.SDF3 {
 	delta := v2vDistance / 2
 	s := sdf.Union3D(valve(-delta, mode), valve(delta, mode))
 	s.(*sdf.UnionSDF3).SetMin(sdf.PolyMin(generalRound))
-	return sdf.Transform3D(s, sdf.Translate3d(sdf.V3{X: d}))
+	return sdf.Transform3D(s, sdf.Translate3d(v3.Vec{X: d}))
 }
 
 func valveSets(mode string) sdf.SDF3 {
@@ -204,11 +206,11 @@ func cylinderHead(d float64, mode string) sdf.SDF3 {
 		zOfs := (headHeight - domeHeight) / 2
 		extraZ := generalRound * 2
 		s, _ = sdf.Cylinder3D(domeHeight+extraZ, domeRadius, generalRound)
-		s = sdf.Transform3D(s, sdf.Translate3d(sdf.V3{X: d, Z: -zOfs - extraZ}))
+		s = sdf.Transform3D(s, sdf.Translate3d(v3.Vec{X: d, Z: -zOfs - extraZ}))
 	} else if mode == "chamber" {
 		zOfs := (headHeight - cylinderHeight) / 2
 		s, _ = sdf.Cylinder3D(cylinderHeight, cylinderRadius, 0)
-		s = sdf.Transform3D(s, sdf.Translate3d(sdf.V3{X: d, Z: -zOfs}))
+		s = sdf.Transform3D(s, sdf.Translate3d(v3.Vec{X: d, Z: -zOfs}))
 	} else {
 		panic("bad mode")
 	}
@@ -232,7 +234,7 @@ var studHoleDy = dim(11.0 / 16.0)
 var studHoleDx0 = dim(7.0 / 16.0)
 var studHoleDx1 = dim(1.066)
 
-var studLocations = []sdf.V2{
+var studLocations = []v2.Vec{
 	{studHoleDx0 + studHoleDx1, 0},
 	{studHoleDx0 + studHoleDx1, studHoleDy},
 	{studHoleDx0 + studHoleDx1, -studHoleDy},
@@ -255,13 +257,13 @@ var headCornerRound = dim((5.0 / 32.0) / 1.25)
 var headWallThickness = dim(0.154)
 
 func headWallOuter2d() sdf.SDF2 {
-	return sdf.Box2D(sdf.V2{X: headLength, Y: headWidth}, headCornerRound)
+	return sdf.Box2D(v2.Vec{X: headLength, Y: headWidth}, headCornerRound)
 }
 
 func headWallInner2d() sdf.SDF2 {
 	l := headLength - (2 * headWallThickness)
 	w := headWidth - (2 * headWallThickness)
-	s0 := sdf.Box2D(sdf.V2{X: l, Y: w}, 0)
+	s0 := sdf.Box2D(v2.Vec{X: l, Y: w}, 0)
 	c, _ := sdf.Circle2D(studBossRadius)
 	s1 := sdf.Multi2D(c, studLocations)
 	s := sdf.Difference2D(s0, s1)
@@ -270,7 +272,7 @@ func headWallInner2d() sdf.SDF2 {
 }
 
 func headEnvelope() sdf.SDF3 {
-	s0 := sdf.Box2D(sdf.V2{X: headLength + 2*ebHeight1, Y: headWidth}, 0)
+	s0 := sdf.Box2D(v2.Vec{X: headLength + 2*ebHeight1, Y: headWidth}, 0)
 	return sdf.Extrude3D(s0, headHeight)
 }
 
@@ -295,17 +297,17 @@ func manifoldSet(r float64) sdf.SDF3 {
 	h := dim(2)
 
 	sEx, _ := sdf.Cylinder3D(h, r, 0)
-	m := sdf.Translate3d(sdf.V3{Z: h / 2})
+	m := sdf.Translate3d(v3.Vec{Z: h / 2})
 	m = sdf.RotateX(sdf.DtoR(-90)).Mul(m)
 	m = sdf.RotateZ(sdf.DtoR(exhaustTheta)).Mul(m)
-	m = sdf.Translate3d(sdf.V3{X: exhaustXOffset, Y: valveYOffset, Z: ebZOffset}).Mul(m)
+	m = sdf.Translate3d(v3.Vec{X: exhaustXOffset, Y: valveYOffset, Z: ebZOffset}).Mul(m)
 	sEx = sdf.Transform3D(sEx, m)
 
 	sIn, _ := sdf.Cylinder3D(h, r, 0)
-	m = sdf.Translate3d(sdf.V3{Z: h / 2})
+	m = sdf.Translate3d(v3.Vec{Z: h / 2})
 	m = sdf.RotateX(sdf.DtoR(-90)).Mul(m)
 	m = sdf.RotateZ(sdf.DtoR(inletTheta)).Mul(m)
-	m = sdf.Translate3d(sdf.V3{X: inletXOffset, Y: valveYOffset, Z: ebZOffset}).Mul(m)
+	m = sdf.Translate3d(v3.Vec{X: inletXOffset, Y: valveYOffset, Z: ebZOffset}).Mul(m)
 	sIn = sdf.Transform3D(sIn, m)
 
 	return sdf.Union3D(sEx, sIn)
@@ -391,7 +393,7 @@ func main() {
 	// Actual rendering loop
 	err := ui.NewRenderer(s,
 		ui.OptMWatchFiles([]string{"main.go"}), // Default of "." also works, but it triggers too often if generating a profile
-		ui.Opt3Mesh(&render.MarchingCubesUniform{}, 100, math.Pi/3),
+		ui.Opt3Mesh(render.NewMarchingCubesUniform(100), math.Pi/3),
 		ui.OptMSmoothCamera(true),
 	).Run()
 	if err != nil {

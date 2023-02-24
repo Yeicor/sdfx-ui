@@ -33,7 +33,7 @@ func spiralSdf() (s interface{}, err error) {
 	//if err != nil {
 	//	return nil, err
 	//}
-	//c2 = sdf.Transform2D(c2, sdf.Translate2d(sdf.V2{X: 0}))
+	//c2 = sdf.Transform2D(c2, sdf.Translate2d(v2.Vec{X: 0}))
 	//s = sdf.Difference2D(s.(sdf.SDF2), c2)
 
 	////WARNING: Text is slow to render (especially with -race flag)
@@ -51,8 +51,8 @@ func spiralSdf() (s interface{}, err error) {
 	//s, _ = sdf.ExtrudeRounded3D(s.(sdf.SDF2), 4, 0.25)
 	//s, _ = sdf.RevolveTheta3D(s.(sdf.SDF2), math.Pi/2)
 
-	//box3, _ := sdf.Box3D(sdf.V3{X: 40, Y: 10, Z: 15}, 0.2)
-	//box3 = sdf.Transform3D(box3, sdf.Translate3d(sdf.V3{Y: 30, Z: -5}))
+	//box3, _ := sdf.Box3D(v3.Vec{X: 40, Y: 10, Z: 15}, 0.2)
+	//box3 = sdf.Transform3D(box3, sdf.Translate3d(v3.Vec{Y: 30, Z: -5}))
 	//s = sdf.Union3D(s.(sdf.SDF3), box3)
 
 	return s, err

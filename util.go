@@ -3,6 +3,8 @@ package ui
 import (
 	"github.com/deadsy/sdfx/sdf"
 	"github.com/deadsy/sdfx/vec/conv"
+	v2 "github.com/deadsy/sdfx/vec/v2"
+	"github.com/deadsy/sdfx/vec/v2i"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/text"
 	"golang.org/x/image/font/inconsolata"
@@ -11,13 +13,13 @@ import (
 	"runtime"
 )
 
-func utilSdf2MinMax(s sdf.SDF2, bb sdf.Box2, cells sdf.V2i) (dmin, dmax float64) {
+func utilSdf2MinMax(s sdf.SDF2, bb sdf.Box2, cells v2i.Vec) (dmin, dmax float64) {
 	cellSize := bb.Size().Div(conv.V2iToV2(cells))
 	for x := 0; x < cells.X; x++ {
 		for y := 0; y < cells.Y; y++ {
 			// TODO: Reverse raycast (without limiting to a single direction) to find extreme values instead of 0s
 			//  (should lower sample count for same results)
-			pos := bb.Min.Add((sdf.V2{X: float64(x), Y: float64(y)}).Mul(cellSize))
+			pos := bb.Min.Add((v2.Vec{X: float64(x), Y: float64(y)}).Mul(cellSize))
 			d := s.Evaluate(pos)
 			dmax = math.Max(dmax, d)
 			dmin = math.Min(dmin, d)
@@ -41,7 +43,7 @@ func drawDefaultTextWithShadow(screen *ebiten.Image, msg string, x, y int, c col
 
 func toBox2(box3 sdf.Box3) sdf.Box2 {
 	return sdf.Box2{
-		Min: sdf.V2{X: box3.Min.X, Y: box3.Min.Y},
-		Max: sdf.V2{X: box3.Max.X, Y: box3.Max.Y},
+		Min: v2.Vec{X: box3.Min.X, Y: box3.Min.Y},
+		Max: v2.Vec{X: box3.Max.X, Y: box3.Max.Y},
 	}
 }

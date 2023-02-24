@@ -4,6 +4,7 @@ import (
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/cenkalti/backoff/v4"
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v2i"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/subchen/go-trylock/v2"
 	"image"
@@ -47,11 +48,11 @@ type Renderer struct {
 	cachedRenderBb2     sdf.Box2                 // what part of the SDF2 the latest cached render represents (not implemented, and no equivalent optimization available for SDF3s)
 	cachedPartialRender *ebiten.Image            // the latest partial render (to display render progress visually)
 	cachedRenderLock    *sync.RWMutex            // the lock over tha partial render
-	screenSize          sdf.V2i                  // the screen ResInv
+	screenSize          v2i.Vec                  // the screen ResInv
 	renderingCtxCancel  func()                   // non-nil if we are currently rendering
 	renderingLock       trylock.TryLocker        // locked when we are rendering, use renderingCtx to cancel the previous render
-	translateFrom       sdf.V2i                  // Translate/rotate (for 3D) screen space start
-	translateFromStop   sdf.V2i                  // Translate/rotate (for 3D) screen space end (recorded while processing the new frame)
+	translateFrom       v2i.Vec                  // Translate/rotate (for 3D) screen space start
+	translateFromStop   v2i.Vec                  // Translate/rotate (for 3D) screen space end (recorded while processing the new frame)
 	// Static configuration
 	runCmd             func() *exec.Cmd // generates a new command to compile and run the code for the new SDF
 	watchFiles         []string         // the files to watch for recompilation of new code
@@ -68,8 +69,8 @@ func NewRenderer(anySDF interface{}, opts ...Option) *Renderer {
 		implStateLock:     &sync.RWMutex{},
 		cachedRenderLock:  &sync.RWMutex{},
 		renderingLock:     trylock.New(),
-		translateFrom:     sdf.V2i{math.MaxInt, math.MaxInt},
-		translateFromStop: sdf.V2i{math.MaxInt, math.MaxInt},
+		translateFrom:     v2i.Vec{math.MaxInt, math.MaxInt},
+		translateFromStop: v2i.Vec{math.MaxInt, math.MaxInt},
 		// Configuration
 		runCmd: func() *exec.Cmd {
 			return exec.Command("go", "run", "-v", ".")

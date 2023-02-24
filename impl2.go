@@ -3,6 +3,9 @@ package ui
 import (
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
+	v2 "github.com/deadsy/sdfx/vec/v2"
+	"github.com/deadsy/sdfx/vec/v2i"
+	v3 "github.com/deadsy/sdfx/vec/v3"
 	"image"
 	"image/color"
 	"image/color/palette"
@@ -33,7 +36,7 @@ func Opt2EvalRange(min, max float64) Option {
 }
 
 // Opt2EvalScanCells configures the initial scan of the SDF2 to find minimum and maximum values (defaults to 128x128 cells).
-func Opt2EvalScanCells(cells sdf.V2i) Option {
+func Opt2EvalScanCells(cells v2i.Vec) Option {
 	return func(r *Renderer) {
 		if r2, ok := r.impl.(*renderer2); ok {
 			r2.evalScanCells = cells
@@ -58,14 +61,14 @@ type renderer2 struct {
 	s                sdf.SDF2 // The SDF to render
 	pixelsRand       []int    // Cached set of pixels in random order to avoid shuffling (reset on recompilation and resolution changes)
 	evalMin, evalMax float64  // The pre-computed minimum and maximum of the whole surface (for stable colors and speed)
-	evalScanCells    sdf.V2i
+	evalScanCells    v2i.Vec
 	getBBColor       func(idx int) color.Color
 }
 
 func newDevRenderer2(s sdf.SDF2) internal.DevRendererImpl {
 	r := &renderer2{
 		s:             s,
-		evalScanCells: sdf.V2i{128, 128},
+		evalScanCells: v2i.Vec{128, 128},
 		getBBColor: func(idx int) color.Color {
 			return palette.WebSafe[((idx + 1) % len(palette.WebSafe))]
 		},
@@ -79,7 +82,7 @@ func (r *renderer2) Dimensions() int {
 
 func (r *renderer2) BoundingBox() sdf.Box3 {
 	bb := r.s.BoundingBox()
-	return sdf.Box3{Min: sdf.V3{X: bb.Min.X, Y: bb.Max.Y, Z: 0.}, Max: sdf.V3{X: bb.Max.X, Y: bb.Max.Y, Z: 0.}}
+	return sdf.Box3{Min: v3.Vec{X: bb.Min.X, Y: bb.Max.Y, Z: 0.}, Max: v3.Vec{X: bb.Max.X, Y: bb.Max.Y, Z: 0.}}
 }
 
 func (r *renderer2) ReflectTree() *internal.ReflectTree {
@@ -107,10 +110,10 @@ func (r *renderer2) Render(args *internal.RenderArgs) error {
 	if math.Abs(bbAspectRatio-screenAspectRatio) > 1e-12 {
 		if bbAspectRatio > screenAspectRatio {
 			scaleYBy := bbAspectRatio / screenAspectRatio
-			args.State.Bb = sdf.NewBox2(args.State.Bb.Center(), args.State.Bb.Size().Mul(sdf.V2{X: 1, Y: scaleYBy}))
+			args.State.Bb = sdf.NewBox2(args.State.Bb.Center(), args.State.Bb.Size().Mul(v2.Vec{X: 1, Y: scaleYBy}))
 		} else {
 			scaleXBy := screenAspectRatio / bbAspectRatio
-			args.State.Bb = sdf.NewBox2(args.State.Bb.Center(), args.State.Bb.Size().Mul(sdf.V2{X: scaleXBy, Y: 1}))
+			args.State.Bb = sdf.NewBox2(args.State.Bb.Center(), args.State.Bb.Size().Mul(v2.Vec{X: scaleXBy, Y: 1}))
 		}
 	}
 	args.StateLock.Unlock()
@@ -122,8 +125,8 @@ func (r *renderer2) Render(args *internal.RenderArgs) error {
 	}
 
 	// Perform the actual render
-	err := implCommonRender(func(pixel sdf.V2i, pixel01 sdf.V2) interface{} { return nil },
-		func(pixel sdf.V2i, pixel01 sdf.V2, job interface{}) *jobResult {
+	err := implCommonRender(func(pixel v2i.Vec, pixel01 v2.Vec) interface{} { return nil },
+		func(pixel v2i.Vec, pixel01 v2.Vec, job interface{}) *jobResult {
 			pixel01.Y = 1 - pixel01.Y // Inverted Y
 			args.StateLock.RLock()
 			pos := args.State.Bb.Min.Add(pixel01.Mul(args.State.Bb.Size()))
@@ -142,7 +145,7 @@ func (r *renderer2) Render(args *internal.RenderArgs) error {
 			//log.Println("Draw", bb)
 			pixel01Min := bb.Min.Sub(args.State.Bb.Min).Div(args.State.Bb.Size())
 			pixel01Max := bb.Max.Sub(args.State.Bb.Min).Div(args.State.Bb.Size())
-			fullRenderSizeV2 := sdf.V2{X: float64(fullRenderSize.X), Y: float64(fullRenderSize.Y)}
+			fullRenderSizeV2 := v2.Vec{X: float64(fullRenderSize.X), Y: float64(fullRenderSize.Y)}
 			posMin := pixel01Min.Mul(fullRenderSizeV2)
 			posMax := pixel01Max.Mul(fullRenderSizeV2)
 			drawRect(args.FullRender, int(posMin.X), fullRenderSize.Y-int(posMax.Y),

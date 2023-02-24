@@ -3,6 +3,9 @@ package ui
 import (
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v2"
+	"github.com/deadsy/sdfx/vec/v2i"
+	"github.com/deadsy/sdfx/vec/v3"
 	"image"
 	"image/color"
 	"image/color/palette"
@@ -24,7 +27,7 @@ func Opt3SwapYAndZ() Option {
 
 // Opt3Cam sets the default transform for the camera (pivot center, angles and distance).
 // WARNING: Need to run again the main renderer to apply a change of this option.
-func Opt3Cam(camCenter sdf.V3, pitch, yaw, dist float64) Option {
+func Opt3Cam(camCenter v3.Vec, pitch, yaw, dist float64) Option {
 	return func(r *Renderer) {
 		r.implState.CamCenter = camCenter
 		r.implState.CamPitch = pitch
@@ -78,7 +81,7 @@ func Opt3NormalEps(normalEps float64) Option {
 
 // Opt3LightDir sets the light direction for basic lighting simulation.
 // Actually, two lights are simulated (the given one and the opposite one), as part of the surface would be hard to see otherwise
-func Opt3LightDir(lightDir sdf.V3) Option {
+func Opt3LightDir(lightDir v3.Vec) Option {
 	return func(r *Renderer) {
 		if r3, ok := r.impl.(*renderer3); ok {
 			r3.lightDir = lightDir.Normalize()
@@ -105,7 +108,7 @@ type renderer3 struct {
 	camFOV                                    float64  // The Field Of View (X axis) for the camera
 	surfaceColor, backgroundColor, errorColor color.RGBA
 	normalEps                                 float64
-	lightDir                                  sdf.V3 // The light's direction for ColorMode: true (simple simulation based on normals)
+	lightDir                                  v3.Vec // The light's direction for ColorMode: true (simple simulation based on normals)
 	depthBuffer                               []float64
 	getBBColor                                func(idx int) color.Color
 
@@ -124,7 +127,7 @@ func newDevRenderer3(s sdf.SDF3) internal.DevRendererImpl {
 		backgroundColor:    color.RGBA{R: 50, G: 100, B: 150, A: 255},
 		errorColor:         color.RGBA{R: 255, B: 255, A: 255},
 		normalEps:          1e-6,
-		lightDir:           sdf.V3{X: -1, Y: 1, Z: 1}.Normalize(), // Same as default camera TODO: Follow camera mode?
+		lightDir:           v3.Vec{X: -1, Y: 1, Z: 1}.Normalize(), // Same as default camera TODO: Follow camera mode?
 		rayScaleAndSigmoid: 0,
 		rayStepScale:       1,
 		rayEpsilon:         1e-2,
@@ -170,10 +173,10 @@ func (r *renderer3) Render(args *internal.RenderArgs) error {
 	args.StateLock.RLock()
 	colorModeCopy := args.State.ColorMode
 	bounds := args.FullRender.Bounds()
-	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
+	boundsSize := v2i.Vec{bounds.Size().X, bounds.Size().Y}
 	//aspectRatio := float64(boundsSize[0]) / float64(boundsSize.Y)
 	camViewMatrix := cam3MatrixNoTranslation(args.State)
-	camPos := args.State.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.State.CamDist}))
+	camPos := args.State.CamCenter.Add(camViewMatrix.MulPosition(v3.Vec{Y: -args.State.CamDist}))
 	camDir := args.State.CamCenter.Sub(camPos).Normalize()
 	camFovX := r.camFOV
 	camFovY := 2 * math.Atan(math.Tan(camFovX/2) /**aspectRatio*/)
@@ -201,8 +204,8 @@ func (r *renderer3) Render(args *internal.RenderArgs) error {
 	args.StateLock.RUnlock()
 
 	// Perform the actual render
-	camHalfFov := sdf.V2{X: camFovX, Y: camFovY}.DivScalar(2)
-	err := implCommonRender(func(pixel sdf.V2i, pixel01 sdf.V2) interface{} {
+	camHalfFov := v2.Vec{X: camFovX, Y: camFovY}.DivScalar(2)
+	err := implCommonRender(func(pixel v2i.Vec, pixel01 v2.Vec) interface{} {
 		return &pixelRender{
 			pixel:         pixel,
 			bounds:        boundsSize,
@@ -214,7 +217,7 @@ func (r *renderer3) Render(args *internal.RenderArgs) error {
 			color:         colorModeCopy,
 			rendered:      color.RGBA{},
 		}
-	}, func(pixel sdf.V2i, pixel01 sdf.V2, job interface{}) *jobResult {
+	}, func(pixel v2i.Vec, pixel01 v2.Vec, job interface{}) *jobResult {
 		return &jobResult{
 			pixel: pixel,
 			color: r.samplePixel(pixel01, job.(*pixelRender)),
@@ -268,10 +271,10 @@ func (r *renderer3) renderBbs(args *internal.RenderArgs, depthBuffer []float64) 
 
 type pixelRender struct {
 	// CAMERA RELATED
-	pixel, bounds  sdf.V2i // Pixel and bounds for pixel
-	camPos, camDir sdf.V3  // Camera parameters
+	pixel, bounds  v2i.Vec // Pixel and bounds for pixel
+	camPos, camDir v3.Vec  // Camera parameters
 	camViewMatrix  sdf.M44 // The world to camera matrix
-	camHalfFov     sdf.V2  // Camera's field of view
+	camHalfFov     v2.Vec  // Camera's field of view
 	maxRay         float64 // The maximum distance of a ray (camPos, camDir) before getting out of bounds
 	// MISC
 	color int
@@ -279,7 +282,7 @@ type pixelRender struct {
 	rendered color.RGBA
 }
 
-func (r *renderer3) samplePixel(pixel01 sdf.V2, job *pixelRender) color.RGBA {
+func (r *renderer3) samplePixel(pixel01 v2.Vec, job *pixelRender) color.RGBA {
 	depthBufferIndex := -1
 	if len(r.depthBuffer) > 0 {
 		depthBufferIndex = job.pixel.Y*job.bounds.X + job.pixel.X
@@ -291,8 +294,8 @@ func (r *renderer3) samplePixel(pixel01 sdf.V2, job *pixelRender) color.RGBA {
 	rayDirXZBase.Y = -rayDirXZBase.Y
 	rayDirXZBase.X *= float64(job.bounds.X) / float64(job.bounds.Y) // Apply aspect ratio (again)
 	// Convert to the projection over a displacement of 1
-	rayDirXZBase = rayDirXZBase.Mul(sdf.V2{X: math.Tan(job.camHalfFov.X), Y: math.Tan(job.camHalfFov.Y)})
-	rayDir := sdf.V3{X: rayDirXZBase.X, Y: 1, Z: rayDirXZBase.Y} // Z is UP (and this default camera is X-right Y-up)
+	rayDirXZBase = rayDirXZBase.Mul(v2.Vec{X: math.Tan(job.camHalfFov.X), Y: math.Tan(job.camHalfFov.Y)})
+	rayDir := v3.Vec{X: rayDirXZBase.X, Y: 1, Z: rayDirXZBase.Y} // Z is UP (and this default camera is X-right Y-up)
 	// Apply the camera matrix to the default ray
 	rayDir = job.camViewMatrix.MulPosition(rayDir) // .Normalize() (done in Raycast already)
 	// TODO: Orthogonal camera mode?
@@ -337,8 +340,8 @@ type invertZ struct {
 	impl sdf.SDF3
 }
 
-func (i *invertZ) Evaluate(p sdf.V3) float64 {
-	return i.impl.Evaluate(p.Mul(sdf.V3{X: 1, Y: 1, Z: -1}))
+func (i *invertZ) Evaluate(p v3.Vec) float64 {
+	return i.impl.Evaluate(p.Mul(v3.Vec{X: 1, Y: 1, Z: -1}))
 }
 
 func (i *invertZ) BoundingBox() sdf.Box3 {
@@ -354,8 +357,8 @@ func (i *invertZ) BoundingBox() sdf.Box3 {
 // collideRayBb https://gamedev.stackexchange.com/a/18459.
 // Returns the length traversed through the array to reach the box, which may be negative (hit backwards).
 // In case of no hit it returns a guess of where it would hit
-func collideRayBb(origin sdf.V3, dir sdf.V3, bb sdf.Box3) float64 {
-	dirFrac := sdf.V3{X: 1 / dir.X, Y: 1 / dir.Y, Z: 1 / dir.Z} // Assumes normalized dir
+func collideRayBb(origin v3.Vec, dir v3.Vec, bb sdf.Box3) float64 {
+	dirFrac := v3.Vec{X: 1 / dir.X, Y: 1 / dir.Y, Z: 1 / dir.Z} // Assumes normalized dir
 	t135 := bb.Min.Sub(origin).Mul(dirFrac)
 	t246 := bb.Max.Sub(origin).Mul(dirFrac)
 	tmin := math.Max(math.Max(math.Min(t135.X, t246.X), math.Min(t135.Y, t246.Y)), math.Min(t135.Z, t246.Z))
@@ -376,8 +379,8 @@ type swapYZ struct {
 	impl sdf.SDF3
 }
 
-func (s *swapYZ) Evaluate(p sdf.V3) float64 {
-	return s.impl.Evaluate(sdf.V3{X: p.X, Y: p.Z, Z: p.Y})
+func (s *swapYZ) Evaluate(p v3.Vec) float64 {
+	return s.impl.Evaluate(v3.Vec{X: p.X, Y: p.Z, Z: p.Y})
 }
 
 func (s *swapYZ) BoundingBox() sdf.Box3 {

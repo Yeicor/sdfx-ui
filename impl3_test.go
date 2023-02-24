@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
+	v3 "github.com/deadsy/sdfx/vec/v3"
 	"image"
 	"math"
 	"sync"
@@ -33,8 +34,8 @@ func BenchmarkDevRenderer3_Render(b *testing.B) {
 
 func Test_collideRayBb(t *testing.T) {
 	type args struct {
-		origin sdf.V3
-		dir    sdf.V3
+		origin v3.Vec
+		dir    v3.Vec
 		bb     sdf.Box3
 	}
 	tests := []struct {
@@ -45,11 +46,11 @@ func Test_collideRayBb(t *testing.T) {
 		{
 			name: "Basic",
 			args: args{
-				origin: sdf.V3{Z: -2},
-				dir:    sdf.V3{Z: 1},
+				origin: v3.Vec{Z: -2},
+				dir:    v3.Vec{Z: 1},
 				bb: sdf.Box3{
-					Min: sdf.V3{X: -1, Y: -1, Z: -1},
-					Max: sdf.V3{X: 1, Y: 1, Z: 1},
+					Min: v3.Vec{X: -1, Y: -1, Z: -1},
+					Max: v3.Vec{X: 1, Y: 1, Z: 1},
 				},
 			},
 			want: 1,
@@ -57,59 +58,59 @@ func Test_collideRayBb(t *testing.T) {
 		{
 			name: "Sideways",
 			args: args{
-				origin: sdf.V3{X: -2, Y: -2, Z: -2},
-				dir:    sdf.V3{X: 1, Y: 1, Z: 1}.Normalize(),
+				origin: v3.Vec{X: -2, Y: -2, Z: -2},
+				dir:    v3.Vec{X: 1, Y: 1, Z: 1}.Normalize(),
 				bb: sdf.Box3{
-					Min: sdf.V3{X: -1, Y: -1, Z: -1},
-					Max: sdf.V3{X: 1, Y: 1, Z: 1},
+					Min: v3.Vec{X: -1, Y: -1, Z: -1},
+					Max: v3.Vec{X: 1, Y: 1, Z: 1},
 				},
 			},
-			want: sdf.V3{X: 1, Y: 1, Z: 1}.Length(),
+			want: v3.Vec{X: 1, Y: 1, Z: 1}.Length(),
 		},
 		{
 			name: "Backwards",
 			args: args{
-				origin: sdf.V3{X: 2, Y: 2, Z: 2},
-				dir:    sdf.V3{X: 1, Y: 1, Z: 1}.Normalize(),
+				origin: v3.Vec{X: 2, Y: 2, Z: 2},
+				dir:    v3.Vec{X: 1, Y: 1, Z: 1}.Normalize(),
 				bb: sdf.Box3{
-					Min: sdf.V3{X: -1, Y: -1, Z: -1},
-					Max: sdf.V3{X: 1, Y: 1, Z: 1},
+					Min: v3.Vec{X: -1, Y: -1, Z: -1},
+					Max: v3.Vec{X: 1, Y: 1, Z: 1},
 				},
 			},
-			want: -sdf.V3{X: 1, Y: 1, Z: 1}.Length(),
+			want: -v3.Vec{X: 1, Y: 1, Z: 1}.Length(),
 		},
 		{
 			name: "Inside",
 			args: args{
-				origin: sdf.V3{X: 0.1, Y: 0.1, Z: 0.1},
-				dir:    sdf.V3{X: 1, Y: 1, Z: 1}.Normalize(),
+				origin: v3.Vec{X: 0.1, Y: 0.1, Z: 0.1},
+				dir:    v3.Vec{X: 1, Y: 1, Z: 1}.Normalize(),
 				bb: sdf.Box3{
-					Min: sdf.V3{X: -1, Y: -1, Z: -1},
-					Max: sdf.V3{X: 1, Y: 1, Z: 1},
+					Min: v3.Vec{X: -1, Y: -1, Z: -1},
+					Max: v3.Vec{X: 1, Y: 1, Z: 1},
 				},
 			},
-			want: sdf.V3{X: 0.9, Y: 0.9, Z: 0.9}.Length(),
+			want: v3.Vec{X: 0.9, Y: 0.9, Z: 0.9}.Length(),
 		},
 		{
 			name: "Inside2",
 			args: args{
-				origin: sdf.V3{X: 0.1, Y: 0.1, Z: 0.1},
-				dir:    sdf.V3{X: -1, Y: -1, Z: -1}.Normalize(),
+				origin: v3.Vec{X: 0.1, Y: 0.1, Z: 0.1},
+				dir:    v3.Vec{X: -1, Y: -1, Z: -1}.Normalize(),
 				bb: sdf.Box3{
-					Min: sdf.V3{X: -1, Y: -1, Z: -1},
-					Max: sdf.V3{X: 1, Y: 1, Z: 1},
+					Min: v3.Vec{X: -1, Y: -1, Z: -1},
+					Max: v3.Vec{X: 1, Y: 1, Z: 1},
 				},
 			},
-			want: sdf.V3{X: -1.1, Y: -1.1, Z: -1.1}.Length(),
+			want: v3.Vec{X: -1.1, Y: -1.1, Z: -1.1}.Length(),
 		},
 		{
 			name: "No hit",
 			args: args{
-				origin: sdf.V3{X: 10, Y: 0, Z: 0},
-				dir:    sdf.V3{X: 1, Y: 1, Z: 1}.Normalize(),
+				origin: v3.Vec{X: 10, Y: 0, Z: 0},
+				dir:    v3.Vec{X: 1, Y: 1, Z: 1}.Normalize(),
 				bb: sdf.Box3{
-					Min: sdf.V3{X: -1, Y: -1, Z: -1},
-					Max: sdf.V3{X: 1, Y: 1, Z: 1},
+					Min: v3.Vec{X: -1, Y: -1, Z: -1},
+					Max: v3.Vec{X: 1, Y: 1, Z: 1},
 				},
 			},
 			want: -15.588457268119893,

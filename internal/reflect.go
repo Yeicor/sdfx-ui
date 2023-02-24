@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v2"
+	"github.com/deadsy/sdfx/vec/v3"
 	"github.com/mitchellh/reflectwalk"
 	"reflect"
 	"unsafe"
@@ -153,7 +155,7 @@ func (i *treeSDFWalkerFunc) handleSDF(value reflect.Value, s interface{}) error 
 	var bb sdf.Box3
 	switch tmp := s.(type) {
 	case sdf.SDF2:
-		toV3 := func(v2 sdf.V2, z float64) sdf.V3 { return sdf.V3{X: v2.X, Y: v2.Y, Z: z} }
+		toV3 := func(v2 v2.Vec, z float64) v3.Vec { return v3.Vec{X: v2.X, Y: v2.Y, Z: z} }
 		bb = sdf.Box3{Min: toV3(tmp.BoundingBox().Min, -1e-3), Max: toV3(tmp.BoundingBox().Max, 1e-3)}
 	case sdf.SDF3:
 		bb = tmp.BoundingBox()

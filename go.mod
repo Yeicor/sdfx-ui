@@ -1,28 +1,29 @@
 module github.com/Yeicor/sdfx-ui
 
-go 1.17
+go 1.18
 
 require (
 	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
 	github.com/cenkalti/backoff/v4 v4.2.0
-	github.com/deadsy/sdfx v0.0.0-20220508165057-718104295925
+	github.com/deadsy/sdfx v0.0.0-20230215171614-2d4e9502ec6f
 	github.com/fogleman/fauxgl v0.0.0-20200818143847-27cddc103802
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/hajimehoshi/ebiten v1.12.12
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/subchen/go-trylock/v2 v2.0.0
-	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9
+	golang.org/x/image v0.5.0
 )
 
 require (
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
 	github.com/fogleman/simplify v0.0.0-20170216171241-d32f302d5046 // indirect
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220516021902-eb3e265c7661 // indirect
+	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+	github.com/hpinc/go3mf v0.24.2 // indirect
 	github.com/llgcode/draw2d v0.0.0-20210904075650-80aa0a2a901d // indirect
+	github.com/qmuntal/opc v0.7.11 // indirect
 	github.com/yofu/dxf v0.0.0-20190710012328-5a6d1e83f16c // indirect
-	golang.org/x/exp/shiny v0.0.0-20220518171630-0b5c67f07fdf // indirect
-	golang.org/x/mobile v0.0.0-20220518205345-8578da9835fd // indirect
-	golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/exp/shiny v0.0.0-20230223210539-50820d90acfd // indirect
+	golang.org/x/mobile v0.0.0-20221110043201-43a038452099 // indirect
+	golang.org/x/sys v0.5.0 // indirect
 )

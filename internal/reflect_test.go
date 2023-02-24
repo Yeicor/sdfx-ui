@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"github.com/deadsy/sdfx/sdf"
+	v2 "github.com/deadsy/sdfx/vec/v2"
 	"strings"
 	"testing"
 )
@@ -32,24 +33,24 @@ func testTree2Common(t *testing.T, d sdf.SDF2, expectedPreOrderNumSDFs []int) {
 }
 
 func TestReflectTree2Single(t *testing.T) {
-	s := sdf.Box2D(sdf.V2{X: 1, Y: 1}, 0.25)
+	s := sdf.Box2D(v2.Vec{X: 1, Y: 1}, 0.25)
 	testTree2Common(t, s, []int{0})
 }
 
 func TestReflectTree2Union(t *testing.T) {
 	var s sdf.SDF2
-	s = sdf.Box2D(sdf.V2{X: 1, Y: 1}, 0.25)
-	s2 := sdf.Box2D(sdf.V2{X: 2, Y: 1}, 0.25)
+	s = sdf.Box2D(v2.Vec{X: 1, Y: 1}, 0.25)
+	s2 := sdf.Box2D(v2.Vec{X: 2, Y: 1}, 0.25)
 	s = sdf.Union2D(s, s2)
 	testTree2Common(t, s, []int{2, 0, 0})
 }
 
 func TestReflectTree2MultiLevel(t *testing.T) {
 	var s sdf.SDF2
-	s = sdf.Box2D(sdf.V2{X: 1, Y: 1}, 0.25)
-	s2 := sdf.Box2D(sdf.V2{X: 2, Y: 1}, 0.25)
+	s = sdf.Box2D(v2.Vec{X: 1, Y: 1}, 0.25)
+	s2 := sdf.Box2D(v2.Vec{X: 2, Y: 1}, 0.25)
 	s = sdf.Union2D(s, s2)
-	s2 = sdf.Box2D(sdf.V2{X: 1, Y: 2}, 0.25)
+	s2 = sdf.Box2D(v2.Vec{X: 1, Y: 2}, 0.25)
 	s = sdf.Difference2D(s, s2)
 	testTree2Common(t, s, []int{2, 2, 0, 0, 0})
 }

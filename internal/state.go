@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v3"
 	"image"
 	"sync"
 )
@@ -34,7 +35,7 @@ type RendererState struct {
 	// SDF2
 	Bb sdf.Box2 // Controls the scale and displacement
 	// SDF3
-	CamCenter                 sdf.V3  // Arc-Ball camera center (the point we are looking at)
+	CamCenter                 v3.Vec  // Arc-Ball camera center (the point we are looking at)
 	CamYaw, CamPitch, CamDist float64 // Arc-Ball rotation angles (around CamCenter) and distance from CamCenter
 }
 

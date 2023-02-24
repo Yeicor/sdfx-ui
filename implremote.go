@@ -4,6 +4,7 @@ import (
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v2i"
 	"log"
 	"net/rpc"
 	"time"
@@ -64,7 +65,7 @@ func (d *rendererClient) Render(args *internal.RenderArgs) error {
 	fullRenderSize := args.FullRender.Bounds().Size()
 	args.StateLock.RLock() // Clone the state to avoid locking while the rendering is happening
 	argsRemote := &internal.RemoteRenderArgs{
-		RenderSize: sdf.V2i{fullRenderSize.X, fullRenderSize.Y},
+		RenderSize: v2i.Vec{X: fullRenderSize.X, Y: fullRenderSize.Y},
 		State:      deepcopy.MustAnything(args.State).(*internal.RendererState),
 	}
 	argsRemote.State.ReflectTree = nil // HACK: Avoids sending the whole metadata tree over the network more than once

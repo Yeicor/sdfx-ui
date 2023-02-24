@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v2i"
 	"github.com/hajimehoshi/ebiten"
 )
 
@@ -38,7 +38,7 @@ func (r rendererEbitenGame) Layout(outsideWidth, outsideHeight int) (screenWidth
 	r.implStateLock.RLock()
 	defer r.implStateLock.RUnlock()
 	if !firstFrame { // Layout is called before Update(), but don't render in this case
-		newScreenSize := sdf.V2i{outsideWidth, outsideHeight}
+		newScreenSize := v2i.Vec{X: outsideWidth, Y: outsideHeight}
 		if r.screenSize != newScreenSize {
 			r.screenSize = newScreenSize
 			r.rerender()

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v2i"
 	"image"
 	"log"
 	"net/rpc"
@@ -70,13 +71,15 @@ func (d *RendererService) ColorModes(_ int, out *int) error {
 }
 
 // RemoteRenderArgs is an internal struct that has to be exported for RPC.
+//
 //goland:noinspection GoDeprecation
 type RemoteRenderArgs struct {
-	RenderSize sdf.V2i
+	RenderSize v2i.Vec
 	State      *RendererState
 }
 
 // RemoteRenderResults is an internal struct that has to be exported for RPC.
+//
 //goland:noinspection GoDeprecation
 type RemoteRenderResults struct {
 	IsPartial   bool

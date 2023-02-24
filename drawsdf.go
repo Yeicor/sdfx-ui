@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/sdf"
+	v2 "github.com/deadsy/sdfx/vec/v2"
+	"github.com/deadsy/sdfx/vec/v2i"
 	"github.com/hajimehoshi/ebiten"
 	"image"
 	"image/color"
@@ -20,13 +22,13 @@ func (r *Renderer) drawSDF(screen *ebiten.Image) {
 	r.cachedRenderLock.RLock()
 	defer r.cachedRenderLock.RUnlock()
 	drawOpts := &ebiten.DrawImageOptions{}
-	var tr sdf.V2
+	var tr v2.Vec
 	if r.translateFrom.X != math.MaxInt && !r.smoothCamera { // Preview translations without rendering (until mouse release)
 		cx, cy := getCursor()
 		if r.translateFromStop.X != math.MaxInt {
 			cx, cy = r.translateFromStop.X, r.translateFromStop.Y
 		}
-		tr = sdf.V2{X: float64(cx), Y: float64(cy)}.Sub(sdf.V2{X: float64(r.translateFrom.X), Y: float64(r.translateFrom.Y)}).DivScalar(float64(r.implState.ResInv))
+		tr = v2.Vec{X: float64(cx), Y: float64(cy)}.Sub(v2.Vec{X: float64(r.translateFrom.X), Y: float64(r.translateFrom.Y)}).DivScalar(float64(r.implState.ResInv))
 		// TODO: Place SDF2 render at the right location during special renders (zooming, changing resolution)
 	}
 	drawOpts.GeoM.Translate(tr.X, tr.Y)
@@ -79,13 +81,13 @@ func (r *Renderer) rerenderOpt(forceCancel bool, callbacks ...func(err error)) {
 		var renderCtx context.Context
 		r.implStateLock.Lock()
 		renderCtx, r.renderingCtxCancel = context.WithCancel(context.Background())
-		renderSize := sdf.V2i{X: int(float64(r.screenSize.X) / float64(r.implState.ResInv)), Y: int(float64(r.screenSize.Y) / float64(r.implState.ResInv))}
+		renderSize := v2i.Vec{X: int(float64(r.screenSize.X) / float64(r.implState.ResInv)), Y: int(float64(r.screenSize.Y) / float64(r.implState.ResInv))}
 		r.implStateLock.Unlock()
 		partialRenders := make(chan *image.RGBA)
 		r.goPartialRendersHandler(partialRenders, renderSize)
 		renderStartTime := time.Now()
 		r.implStateLock.RLock()
-		sameSize := r.cachedRenderCPU != nil && (sdf.V2i{r.cachedRenderCPU.Rect.Max.X, r.cachedRenderCPU.Rect.Max.Y} == renderSize)
+		sameSize := r.cachedRenderCPU != nil && (v2i.Vec{r.cachedRenderCPU.Rect.Max.X, r.cachedRenderCPU.Rect.Max.Y} == renderSize)
 		if !sameSize {
 			r.cachedRenderCPU = image.NewRGBA(image.Rect(0, 0, renderSize.X, renderSize.Y))
 		}
@@ -143,8 +145,8 @@ func (r *Renderer) rerenderOpt(forceCancel bool, callbacks ...func(err error)) {
 	}(callbacks...)
 }
 
-func (r *Renderer) goPartialRendersHandler(partialRenders chan *image.RGBA, renderSize sdf.V2i) {
-	go func(renderSize sdf.V2i) {
+func (r *Renderer) goPartialRendersHandler(partialRenders chan *image.RGBA, renderSize v2i.Vec) {
+	go func(renderSize v2i.Vec) {
 		partialRenderCopy := image.NewRGBA(image.Rect(0, 0, renderSize.X, renderSize.Y))
 		lastPartialRender := time.Now()
 		for partialRender := range partialRenders {

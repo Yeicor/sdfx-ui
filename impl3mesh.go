@@ -4,6 +4,8 @@ import (
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/deadsy/sdfx/render"
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v2i"
+	v3 "github.com/deadsy/sdfx/vec/v3"
 	"github.com/fogleman/fauxgl"
 	"image"
 	"image/color"
@@ -17,18 +19,20 @@ import (
 
 // Opt3Mesh enables and configures the 3D mesh renderer instead of the default raycast based renderer
 // WARNING: Should be the last option applied (as some other options might modify the SDF3).
-func Opt3Mesh(meshGenerator render.Render3, meshCells int, smoothNormalsRadians float64) Option {
+func Opt3Mesh(meshGenerator render.Render3, smoothNormalsRadians float64) Option {
 	return func(r *Renderer) {
 		if r3, ok := r.impl.(*renderer3); ok {
 			log.Println("[DevRenderer] Rendering 3D mesh...") // only performed once per compilation
 			var triangles []*fauxgl.Triangle
-			triChan := make(chan *render.Triangle3)
+			triChan := make(chan []*render.Triangle3)
 			go func() {
-				meshGenerator.Render(r3.s, meshCells, triChan)
+				meshGenerator.Render(r3.s, triChan)
 				close(triChan)
 			}()
-			for tri := range triChan {
-				triangles = append(triangles, r3mConvertTriangle(tri))
+			for tris := range triChan {
+				for _, tri := range tris {
+					triangles = append(triangles, r3mConvertTriangle(tri))
+				}
 			}
 			mesh := fauxgl.NewTriangleMesh(triangles)
 			// smooth the normals
@@ -94,10 +98,10 @@ func (rm *renderer3mesh) Render(r *renderer3, args *internal.RenderArgs) error {
 	return nil
 }
 
-func (rm *renderer3mesh) reset(r *renderer3, args *internal.RenderArgs) (fauxgl.Matrix, sdf.V3) {
+func (rm *renderer3mesh) reset(r *renderer3, args *internal.RenderArgs) (fauxgl.Matrix, v3.Vec) {
 	args.StateLock.Lock()
 	bounds := args.FullRender.Bounds()
-	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
+	boundsSize := v2i.Vec{bounds.Size().X, bounds.Size().Y}
 	if rm.lastContext == nil || rm.lastContext.Width != boundsSize.X || rm.lastContext.Height != boundsSize.Y {
 		// Rebuild rendering context only when needed
 		rm.lastContext = fauxgl.NewContext(boundsSize.X, boundsSize.Y)
@@ -112,7 +116,7 @@ func (rm *renderer3mesh) reset(r *renderer3, args *internal.RenderArgs) (fauxgl.
 	//args.state.CamCenter.Y = -args.state.CamCenter.Y
 	aspectRatio := float64(boundsSize.X) / float64(boundsSize.Y)
 	camViewMatrix := cam3MatrixNoTranslation(args.State)
-	camPos := args.State.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -args.State.CamDist / 1.12 /* Adjust to other implementation*/}))
+	camPos := args.State.CamCenter.Add(camViewMatrix.MulPosition(v3.Vec{Y: -args.State.CamDist / 1.12 /* Adjust to other implementation*/}))
 	camDir := args.State.CamCenter.Sub(camPos).Normalize()
 	camFovX := r.camFOV
 	camFovY := 2 * math.Atan(math.Tan(camFovX/2)*aspectRatio)
@@ -162,7 +166,7 @@ func r3mConvertTriangle(tri *render.Triangle3) *fauxgl.Triangle {
 	}
 }
 
-func r3mToFauxglVector(normal sdf.V3) fauxgl.Vector {
+func r3mToFauxglVector(normal v3.Vec) fauxgl.Vector {
 	return fauxgl.Vector{X: normal.X, Y: normal.Y, Z: normal.Z}
 }
 

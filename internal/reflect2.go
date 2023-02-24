@@ -2,6 +2,7 @@ package internal
 
 import (
 	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v2"
 	"reflect"
 )
 
@@ -41,8 +42,8 @@ func (r *ReflectTree) getBoundingBoxes2(tree *ReflectTree) []sdf.Box2 {
 	if //goland:noinspection GoBoolExpressions
 	!skipParent {
 		res = append(res, sdf.Box2{
-			Min: sdf.V2{X: tree.Info.Bb.Min.X, Y: tree.Info.Bb.Min.Y},
-			Max: sdf.V2{X: tree.Info.Bb.Max.X, Y: tree.Info.Bb.Max.Y},
+			Min: v2.Vec{X: tree.Info.Bb.Min.X, Y: tree.Info.Bb.Min.Y},
+			Max: v2.Vec{X: tree.Info.Bb.Max.X, Y: tree.Info.Bb.Max.Y},
 		})
 	}
 	if !skipChildren {

@@ -2,7 +2,8 @@ package ui
 
 import (
 	"github.com/Yeicor/sdfx-ui/internal"
-	"github.com/deadsy/sdfx/sdf"
+	"github.com/deadsy/sdfx/vec/v2"
+	"github.com/deadsy/sdfx/vec/v2i"
 	"image/color"
 	"math/rand"
 	"runtime"
@@ -10,18 +11,18 @@ import (
 )
 
 type jobInternal struct {
-	pixel   sdf.V2i
-	pixel01 sdf.V2
+	pixel   v2i.Vec
+	pixel01 v2.Vec
 	data    interface{}
 }
 
 type jobResult struct {
-	pixel sdf.V2i
+	pixel v2i.Vec
 	color color.RGBA
 }
 
-func implCommonRender(genJob func(pixel sdf.V2i, pixel01 sdf.V2) interface{},
-	processJob func(pixel sdf.V2i, pixel01 sdf.V2, job interface{}) *jobResult,
+func implCommonRender(genJob func(pixel v2i.Vec, pixel01 v2.Vec) interface{},
+	processJob func(pixel v2i.Vec, pixel01 v2.Vec, job interface{}) *jobResult,
 	args *internal.RenderArgs, pixelsRand *[]int) error {
 
 	// Set all pixels to transparent initially (for partial renderings to work)
@@ -33,7 +34,7 @@ func implCommonRender(genJob func(pixel sdf.V2i, pixel01 sdf.V2) interface{},
 
 	// Update random pixels if needed
 	bounds := args.FullRender.Bounds()
-	boundsSize := sdf.V2i{bounds.Size().X, bounds.Size().Y}
+	boundsSize := v2i.Vec{bounds.Size().X, bounds.Size().Y}
 	pixelCount := boundsSize.X * boundsSize.Y
 	if pixelCount != len(*pixelsRand) {
 		// Random seed shouldn't matter, just make pixel coloring seem random for partial renders
@@ -68,8 +69,8 @@ func implCommonRender(genJob func(pixel sdf.V2i, pixel01 sdf.V2) interface{},
 	loop: // Sample each pixel on the image separately (and in random order to see the image faster)
 		for _, randPixelIndex := range *pixelsRand {
 			// Sample a random pixel in the image
-			sampledPixel := sdf.V2i{X: randPixelIndex % boundsSize.X, Y: randPixelIndex / boundsSize.X}
-			sampledPixel01 := sdf.V2{X: float64(sampledPixel.X) / float64(boundsSize.X), Y: float64(sampledPixel.Y) / float64(boundsSize.Y)}
+			sampledPixel := v2i.Vec{X: randPixelIndex % boundsSize.X, Y: randPixelIndex / boundsSize.X}
+			sampledPixel01 := v2.Vec{X: float64(sampledPixel.X) / float64(boundsSize.X), Y: float64(sampledPixel.Y) / float64(boundsSize.Y)}
 			// Queue the job for parallel processing
 			select {
 			case <-args.Ctx.Done():

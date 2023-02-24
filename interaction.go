@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/Yeicor/sdfx-ui/internal"
 	"github.com/barkimedes/go-deepcopy"
-	"github.com/deadsy/sdfx/sdf"
 	"github.com/deadsy/sdfx/vec/conv"
+	v2 "github.com/deadsy/sdfx/vec/v2"
+	"github.com/deadsy/sdfx/vec/v2i"
+	v3 "github.com/deadsy/sdfx/vec/v3"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/hajimehoshi/ebiten/text"
@@ -94,7 +96,7 @@ func (r *Renderer) onUpdateInputsSDF2() {
 		cx, cy := getCursor()
 		r.implStateLock.Lock()
 		if r.translateFrom.X == math.MaxInt { // Only if not already moving...
-			r.translateFrom = sdf.V2i{X: cx, Y: cy}
+			r.translateFrom = v2i.Vec{X: cx, Y: cy}
 		}
 		r.implStateLock.Unlock()
 	}
@@ -105,18 +107,18 @@ func (r *Renderer) onUpdateInputsSDF2() {
 		if r.translateFrom.X != math.MaxInt { // Only if already moving...
 			r.implState = r.apply2DCameraMoveTo(cx, cy)
 			// Keep displacement until rerender is complete (avoid jump) using callback below + extra variable set here
-			r.translateFromStop = sdf.V2i{X: cx, Y: cy}
+			r.translateFromStop = v2i.Vec{X: cx, Y: cy}
 		}
 		if r.smoothCamera {
-			r.translateFrom = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
+			r.translateFrom = v2i.Vec{X: math.MaxInt, Y: math.MaxInt}
 		}
 		r.implStateLock.Unlock()
 		r.rerender(func(err error) {
 			r.implStateLock.Lock()
 			if !r.smoothCamera {
-				r.translateFrom = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
+				r.translateFrom = v2i.Vec{X: math.MaxInt, Y: math.MaxInt}
 			}
-			r.translateFromStop = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
+			r.translateFromStop = v2i.Vec{X: math.MaxInt, Y: math.MaxInt}
 			r.implStateLock.Unlock()
 		})
 	}
@@ -132,7 +134,7 @@ func (r *Renderer) onUpdateInputsSDF2() {
 func (r *Renderer) apply2DCameraMoveTo(cx int, cy int) *internal.RendererState {
 	newVal := deepcopy.MustAnything(r.implState).(*internal.RendererState)
 	newVal.Bb = r.implState.Bb.Translate(
-		conv.V2iToV2(r.translateFrom).Sub(conv.V2iToV2(sdf.V2i{X: cx, Y: cy})).Mul(sdf.V2{X: 1, Y: -1}). // Invert Y
+		conv.V2iToV2(r.translateFrom).Sub(conv.V2iToV2(v2i.Vec{X: cx, Y: cy})).Mul(v2.Vec{X: 1, Y: -1}). // Invert Y
 															Div(conv.V2iToV2(r.screenSize)).Mul(r.implState.Bb.Size()))
 	return newVal
 }
@@ -173,7 +175,7 @@ func (r *Renderer) onUpdateInputsSDF3RotTrans() {
 		cx, cy := getCursor()
 		r.implStateLock.Lock()
 		if r.translateFrom.X == math.MaxInt { // Only if not already moving...
-			r.translateFrom = sdf.V2i{X: cx, Y: cy}
+			r.translateFrom = v2i.Vec{X: cx, Y: cy}
 		}
 		r.implStateLock.Unlock()
 	}
@@ -184,18 +186,18 @@ func (r *Renderer) onUpdateInputsSDF3RotTrans() {
 		if r.translateFrom.X != math.MaxInt { // Only if already moving...
 			r.implState = r.apply3DCameraMoveTo(cx, cy)
 			// Keep displacement until rerender is complete (avoid jump) using callback below + extra variable set here
-			r.translateFromStop = sdf.V2i{X: cx, Y: cy}
+			r.translateFromStop = v2i.Vec{X: cx, Y: cy}
 		}
 		if r.smoothCamera {
-			r.translateFrom = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
+			r.translateFrom = v2i.Vec{X: math.MaxInt, Y: math.MaxInt}
 		}
 		r.implStateLock.Unlock()
 		r.rerender(func(err error) {
 			r.implStateLock.Lock()
 			if !r.smoothCamera {
-				r.translateFrom = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
+				r.translateFrom = v2i.Vec{X: math.MaxInt, Y: math.MaxInt}
 			}
-			r.translateFromStop = sdf.V2i{X: math.MaxInt, Y: math.MaxInt}
+			r.translateFromStop = v2i.Vec{X: math.MaxInt, Y: math.MaxInt}
 			r.implStateLock.Unlock()
 		})
 	}
@@ -203,14 +205,14 @@ func (r *Renderer) onUpdateInputsSDF3RotTrans() {
 
 func (r *Renderer) apply3DCameraMoveTo(cx int, cy int) *internal.RendererState {
 	newVal := deepcopy.MustAnything(r.implState).(*internal.RendererState)
-	delta := conv.V2iToV2(sdf.V2i{X: cx, Y: cy}).Sub(conv.V2iToV2(r.translateFrom))
+	delta := conv.V2iToV2(v2i.Vec{X: cx, Y: cy}).Sub(conv.V2iToV2(r.translateFrom))
 	if ebiten.IsKeyPressed(ebiten.KeyShift) { // Translation
 		// Move on the plane perpendicular to the camera's direction
 		camViewMatrix := cam3MatrixNoTranslation(r.implState)
-		camPos := r.implState.CamCenter.Add(camViewMatrix.MulPosition(sdf.V3{Y: -r.implState.CamDist}))
+		camPos := r.implState.CamCenter.Add(camViewMatrix.MulPosition(v3.Vec{Y: -r.implState.CamDist}))
 		camDir := r.implState.CamCenter.Sub(camPos).Normalize()
 		planeZero := r.implState.CamCenter
-		planeRight := sdf.V3{Z: 1}.Cross(camDir).Normalize()
+		planeRight := v3.Vec{Z: 1}.Cross(camDir).Normalize()
 		planeUp := camDir.Cross(planeRight).Normalize()
 		newPos := planeZero. // TODO: Proper projection on plane delta computation
 					Add(planeRight.MulScalar(delta.X * r.implState.CamDist / 200)).
