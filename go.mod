@@ -11,7 +11,7 @@ require (
 	github.com/hajimehoshi/ebiten v1.12.12
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/subchen/go-trylock/v2 v2.0.0
-	golang.org/x/image v0.13.0
+	golang.org/x/image v0.14.0
 )
 
 require (
