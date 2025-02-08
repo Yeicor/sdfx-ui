@@ -24,7 +24,7 @@ func Opt3Mesh(meshGenerator render.Render3, smoothNormalsRadians float64) Option
 		if r3, ok := r.impl.(*renderer3); ok {
 			log.Println("[DevRenderer] Rendering 3D mesh...") // only performed once per compilation
 			var triangles []*fauxgl.Triangle
-			triChan := make(chan []*render.Triangle3)
+			triChan := make(chan []*sdf.Triangle3)
 			go func() {
 				meshGenerator.Render(r3.s, triChan)
 				close(triChan)
@@ -156,7 +156,7 @@ func (rm *renderer3mesh) renderBoundingBox(bb sdf.Box3, camFauxglMatrix fauxgl.M
 	return rm.lastContext.Image().(*image.NRGBA)
 }
 
-func r3mConvertTriangle(tri *render.Triangle3) *fauxgl.Triangle {
+func r3mConvertTriangle(tri *sdf.Triangle3) *fauxgl.Triangle {
 	normal := tri.Normal()
 	normalV := r3mToFauxglVector(normal)
 	return &fauxgl.Triangle{
