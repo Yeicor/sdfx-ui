@@ -26,7 +26,7 @@ func Opt3Mesh(meshGenerator render.Render3, smoothNormalsRadians float64) Option
 			var triangles []*fauxgl.Triangle
 			triChan := make(chan []*sdf.Triangle3)
 			go func() {
-				meshGenerator.Render(r3.s, triChan)
+				meshGenerator.Render(r3.s, NewTriangle3Buffer(triChan))
 				close(triChan)
 			}()
 			for tris := range triChan {
@@ -160,9 +160,9 @@ func r3mConvertTriangle(tri *sdf.Triangle3) *fauxgl.Triangle {
 	normal := tri.Normal()
 	normalV := r3mToFauxglVector(normal)
 	return &fauxgl.Triangle{
-		V1: fauxgl.Vertex{Position: r3mToFauxglVector(tri.V[0]), Normal: normalV, Color: fauxgl.Gray(1)},
-		V2: fauxgl.Vertex{Position: r3mToFauxglVector(tri.V[1]), Normal: normalV, Color: fauxgl.Gray(1)},
-		V3: fauxgl.Vertex{Position: r3mToFauxglVector(tri.V[2]), Normal: normalV, Color: fauxgl.Gray(1)},
+		V1: fauxgl.Vertex{Position: r3mToFauxglVector(tri[0]), Normal: normalV, Color: fauxgl.Gray(1)},
+		V2: fauxgl.Vertex{Position: r3mToFauxglVector(tri[1]), Normal: normalV, Color: fauxgl.Gray(1)},
+		V3: fauxgl.Vertex{Position: r3mToFauxglVector(tri[2]), Normal: normalV, Color: fauxgl.Gray(1)},
 	}
 }
 
