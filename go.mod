@@ -6,7 +6,7 @@ require (
 	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/deadsy/sdfx v0.0.0-20230215171614-2d4e9502ec6f
-	github.com/fogleman/fauxgl v0.0.0-20200818143847-27cddc103802
+	github.com/fogleman/fauxgl v0.0.0-20250110135958-abf826acbbbd
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/hajimehoshi/ebiten v1.12.12
 	github.com/mitchellh/reflectwalk v1.0.2
