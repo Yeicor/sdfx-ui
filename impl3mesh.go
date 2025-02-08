@@ -26,7 +26,7 @@ func Opt3Mesh(meshGenerator render.Render3, smoothNormalsRadians float64) Option
 			var triangles []*fauxgl.Triangle
 			triChan := make(chan []*sdf.Triangle3)
 			go func() {
-				meshGenerator.Render(r3.s, NewTriangle3Buffer(triChan))
+				meshGenerator.Render(r3.s, sdf.NewTriangle3Buffer(triChan))
 				close(triChan)
 			}()
 			for tris := range triChan {
