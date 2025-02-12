@@ -1,10 +1,13 @@
 module github.com/Yeicor/sdfx-ui
 
-go 1.18
+go 1.23
+
+toolchain go1.24.0
 
 require (
 	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df
 	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/deadsy/sdfx v0.0.0-20230215171614-2d4e9502ec6f
 	github.com/fogleman/fauxgl v0.0.0-20250110135958-abf826acbbbd
 	github.com/fsnotify/fsnotify v1.8.0
